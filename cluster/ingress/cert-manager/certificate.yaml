@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: 0xamit-cert
+  namespace: cert-manager
+spec:
+  secretName: 0xamit-com-tls
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
+  commonName: 0xamit.com
+  dnsNames:
+  - 0xamit.com
+  - "*.0xamit.com"
