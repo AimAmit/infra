@@ -42,6 +42,10 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80
+  targetPort: 5050
+
+deployment:
+  containerPort: 5050
 
 ingress:
   enabled: true
