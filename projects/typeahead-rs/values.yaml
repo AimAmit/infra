@@ -8,7 +8,7 @@ image:
   repository: aimamit/typeahead-rs
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "3613d158c5a5c9781cd7b8b232e2630b8e18bd90"
+  tag: 4981e3e029f2b84c9695d1d5a97d8ab25a530a21
 
 imagePullSecrets: []
 nameOverride: ""
@@ -69,11 +69,11 @@ resources:
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   limits:
+    # cpu: 100m
+    # memory: 256Mi
+  requests:
     cpu: 100m
     memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
 autoscaling:
   enabled: false
