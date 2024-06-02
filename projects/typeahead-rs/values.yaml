@@ -8,7 +8,7 @@ image:
   repository: aimamit/typeahead-rs
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: 9f79dc92d93d966f39e31b8412fe1154f8fd4fa0
+  tag: d35e200aa11f30d938f6093b6ece95935c608c88
 
 imagePullSecrets: []
 nameOverride: ""
