@@ -10,6 +10,23 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-secret
     solvers:
+    - dns01:
+        cloudflare:
+          email: contacttoamit00@gmail.com
+          apiTokenSecretRef:
+            name: cloudflare-api-token-secret
+            key: apiKey
     - http01:
         ingress:
           class: nginx
+
+---          
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-api-token-secret
+  namespace: cert-manager
+type: Opaque
+stringData:
+  apiKey: tFAshH_vqve3jTh3nuzAwPaQuP6Ptubsn9Vm1shv
