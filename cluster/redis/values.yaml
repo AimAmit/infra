@@ -1,0 +1,27 @@
+# helm upgrade --install redis bitnami/redis -f cluster/redis/values.yaml -n redis --create-namespace
+
+replica:
+  replicaCount: 0 # Set replicas to 1 for a simple setup, change for high availability
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: "local-storage" # Replace with your desired storage class or leave empty for default
+
+service:
+  type: ClusterIP # For internal access within the cluster (default)
+  port: 6379
+
+master:
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: "local-storage" # Replace with your desired storage class
+  service:
+    type: NodePort # Internal service for Redis master
+  extraFlags: # Add extra command line flags for Redis master
+    - "--maxmemory-policy noeviction"
+
+auth:
+  enabled: false # Set to true and provide password if authentication is required
+
