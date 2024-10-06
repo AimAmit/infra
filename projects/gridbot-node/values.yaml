@@ -10,7 +10,7 @@ image:
   repository: ghcr.io/aimamit/gridbot-node
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: c4b9f282fe88ab55081106527529da18a8e59aab
+  tag: 7085aee2edd5b469c4bfec3e9312383f644dec67
 
 imagePullSecrets:
   - name: dockerconfigjson-github-com
