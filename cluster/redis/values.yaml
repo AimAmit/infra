@@ -21,6 +21,8 @@ master:
     type: NodePort # Internal service for Redis master
   extraFlags: # Add extra command line flags for Redis master
     - "--maxmemory-policy noeviction"
+  disableCommands:
+    - FLUSHALL
 
 auth:
   enabled: false # Set to true and provide password if authentication is required
