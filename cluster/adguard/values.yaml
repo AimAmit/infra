@@ -1,0 +1,125 @@
+
+# AdGuard Home Helm Chart Values
+# This file is passed to helm upgrade --install adguardhome adguardhome/adguardhome -f values.yaml
+# in conjunction with the Kustomize post-renderer.
+
+replicaCount: 1
+
+image:
+  repository: adguard/adguardhome
+  pullPolicy: IfNotPresent
+  tag: "" # You can specify a tag here, e.g., "latest" or "v0.107.62"
+
+service:
+  type: ClusterIP # This service is for internal cluster routing, not direct external exposure
+  ports:
+    - name: http-setup
+      containerPort: 3000 # AdGuard Home's initial setup web UI
+      protocol: TCP
+    - name: dns-udp
+      containerPort: 53 # Standard DNS UDP
+      hostPort: 53
+      protocol: UDP
+    - name: dns-tcp
+      containerPort: 53 # Standard DNS TCP
+      protocol: TCP
+    - name: http # AdGuard Home's main web UI port (often 80)
+      containerPort: 80
+      protocol: TCP
+    - name: https # AdGuard Home's encrypted DNS port (DoH/DoT)
+      containerPort: 443
+      protocol: TCP
+    - name: dot
+      containerPort: 853 # For DoT
+      hostPort: 853
+      protocol: TCP
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-issuer # Ensure this matches your ClusterIssuer name
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP" # NGINX terminates TLS, sends HTTP to AdGuard
+
+  hosts:
+    # AdGuard Home Dashboard (Web UI)
+    - host: adguard-ui.0xamit.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: adguardhome # Name of the Kubernetes Service
+              port:
+                name: http # Target the main HTTP port for the UI
+
+    # AdGuard Home DNS-over-HTTPS (DoH) endpoint
+    - host: dns.0xamit.com
+      paths:
+        - path: /dns-query # Standard path for DoH requests
+          pathType: Prefix
+          backend:
+            service:
+              name: adguardhome # Name of the Kubernetes Service
+              port:
+                name: https # Target the HTTPS port for DoH
+
+  tls:
+    - secretName: 0xamit-com-tls
+      hosts:
+        - adguard-ui.0xamit.com
+    - secretName: 0xamit-com-tls
+      hosts:
+        - dns.0xamit.com
+
+# Persistence configuration (keeping default, but adjust size/storageClass as needed)
+persistence:
+  enabled: true
+  size: 1Gi
+  # storageClass: "your-storage-class" # Uncomment and specify if you have a custom storage class
+
+# Probes - crucial for Kubernetes to know if your app is healthy
+# AdGuard Home's web interface is typically on port 80 or 3000.
+# We'll use port 80 ('http' service port) for probes, assuming it's the primary UI.
+livenessProbe:
+  httpGet:
+    path: /
+    port: http # Target the 'http' service port (containerPort 80)
+  initialDelaySeconds: 30 # Give AdGuard Home ample time to start
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /
+    port: http # Target the 'http' service port (containerPort 80)
+  initialDelaySeconds: 5 # Can be shorter than liveness
+  timeoutSeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+
+# Volume mount for TLS certificates for DNS-over-TLS (DoT)
+# This section needs to be added or uncommented/adjusted based on the Helm chart's structure.
+# Common paths are `podTemplate`, `controller.podTemplate`, or directly under `pod`.
+# Assuming a `podTemplate` or similar top-level key for pod spec customization.
+podTemplate: # This key might vary, check helm show values adguardhome/adguardhome
+  volumes:
+    - name: adguard-dns-tls-volume
+      secret:
+        secretName: adguard-dns-tls # This is the secret Cert-Manager will create (without random suffix)
+        # Cert-Manager secrets contain 'tls.crt' and 'tls.key' by default
+        # You can optionally specify items if you want different file names in the mount path:
+        # items:
+        #   - key: tls.crt
+        #     path: cert.pem
+        #   - key: tls.key
+        #     path: key.pem
+
+  volumeMounts:
+    - name: adguard-dns-tls-volume
+      mountPath: /opt/adguardhome/ssl # AdGuard Home will look for certs here
+      readOnly: true
+
+# podSecurityContext: # Uncomment if needed
+#   fsGroup: 1000
+

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-dns-nodeport # A distinct name for this NodePort Service
+  namespace: adguard  # Must be in the same namespace as your AdGuard Home deployment
+  labels:
+    app.kubernetes.io/instance: adguard
+    app.kubernetes.io/name: adguardhome
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local # Recommended for preserving client IPs for DNS.
+                               # Can also be 'Cluster' if you have one replica
+                               # and want traffic routed to any pod.
+  ports:
+    - name: dns-udp
+      protocol: UDP
+      port: 53       # Internal ClusterIP port (can be different, but 53 is fine)
+      targetPort: 53 # Port AdGuard Home pod listens on internally for UDP DNS
+      nodePort: 30053 # <<< OPTIONAL: You can specify a port in 30000-32767 range.
+                       # If omitted, Kubernetes will auto-assign one.
+  selector:
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguard

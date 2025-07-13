@@ -1,4 +1,11 @@
+#helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+#  --namespace ingress-nginx \
+#    --create-namespace \
+#      -f ingress/nginx-metal-values.yaml
+#
+
 controller:
+  allowSnippetAnnotations: true
   hostNetwork: true
   metrics:
     enabled: true
@@ -6,5 +13,4 @@ controller:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "10254"
-
 

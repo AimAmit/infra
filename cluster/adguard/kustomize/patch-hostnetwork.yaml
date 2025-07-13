@@ -1,0 +1,69 @@
+# If you don't have a base Ingress, create the full Ingress resource here.
+# If you have a base, this will patch it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: adguardhome
+  annotations:
+    # Ensure this matches your ClusterIssuer name
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+
+    # This global backend-protocol is fine for the UI (HTTP)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP" # Still applies to /
+
+    # Required for Cloudflare's full strict SSL/TLS mode
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Specific annotation for the DoH path to proxy via HTTPS internally
+    # This overrides the global 'backend-protocol: "HTTP"' for /dns-query
+
+    # nginx.ingress.kubernetes.io/server-snippet: |
+    #   location /dns-query {
+    #     # Proxy to the Kubernetes Service FQDN using HTTPS internally
+    #     proxy_pass https://adguardhome.<your-adguard-namespace>.svc.cluster.local:443;
+    #     # Standard proxy headers
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Real-IP $remote_addr;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_set_header X-Forwarded-Proto $scheme;
+    #     # Adjust timeouts if DoH queries are slow
+    #     proxy_read_timeout 300s;
+    #     proxy_send_timeout 300s;
+    #   }
+
+    # Other useful Nginx Ingress annotations
+    nginx.ingress.kubernetes.io/proxy-body-size: "0" # For large blocklists/responses
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+
+spec:
+  tls:
+    - hosts:
+        - adguard-ui.0xamit.com
+        - dns.0xamit.com # Add dns.0xamit.com for cert-manager
+      secretName: 0xamit-com-tls # Secret where cert-manager stores TLS certs
+  rules:
+    - host: adguard-ui.0xamit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: adguardhome
+                port:
+                  name: http # Refers to the HTTP UI port in Service
+
+    - host: dns.0xamit.com
+      http:
+        paths:
+          - path: /dns-query # Standard path for DoH
+            pathType: Prefix
+            backend:
+              service:
+                name: adguardhome
+                port:
+                  # This port name is still used by the ingress controller,
+                  # but the actual proxying is handled by the server-snippet.
+                  # It's good practice to point it to the intended port.
+                  name: doh-https

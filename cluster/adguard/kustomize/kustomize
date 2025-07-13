@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+# Create temp dir to hold Helm manifest and kustomize config
+TMPDIR=$(mktemp -d)
+
+# Save Helm output from stdin
+cat - >"${TMPDIR}/input.yaml"
+
+# Copy patch files and kustomization.yaml
+cp "$(dirname "$0")"/kustomization.yaml "${TMPDIR}/"
+cp "$(dirname "$0")"/patch-hostnetwork.yaml "${TMPDIR}/"
+
+# Run kustomize
+kustomize build "$TMPDIR"
+
+# Clean up
+rm -rf "$TMPDIR"
