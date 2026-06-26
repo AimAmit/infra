@@ -209,5 +209,5 @@ spec:
               service:
                 name: adguardhome
                 port:
-                  name: https
+                  name: http
 

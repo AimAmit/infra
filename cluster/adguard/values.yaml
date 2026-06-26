@@ -62,7 +62,7 @@ ingress:
             service:
               name: adguardhome # Name of the Kubernetes Service
               port:
-                name: https # Target the HTTPS port for DoH
+                name: http # Target the HTTP port for DoH since NGINX terminates TLS
 
   tls:
     - secretName: 0xamit-com-tls

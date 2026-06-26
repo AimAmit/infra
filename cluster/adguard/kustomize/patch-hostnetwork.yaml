@@ -63,7 +63,4 @@ spec:
               service:
                 name: adguardhome
                 port:
-                  # This port name is still used by the ingress controller,
-                  # but the actual proxying is handled by the server-snippet.
-                  # It's good practice to point it to the intended port.
-                  name: doh-https
+                  name: http
