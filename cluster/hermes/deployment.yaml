@@ -41,6 +41,15 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
+      - name: dashboard
+        image: nousresearch/hermes-agent:latest
+        command: ["hermes", "dashboard", "--host", "0.0.0.0", "--insecure"]
+        env:
+        - name: GATEWAY_HEALTH_URL
+          value: "http://localhost:8642"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /opt/data
       volumes:
       - name: data-volume
         persistentVolumeClaim:
