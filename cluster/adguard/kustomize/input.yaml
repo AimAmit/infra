@@ -187,7 +187,7 @@ spec:
         - "adguard-ui.0xamit.com"
       secretName: 0xamit-com-tls
     - hosts:
-        - "dns.0xamit.com"
+        - "adguard.0xamit.com"
       secretName: 0xamit-com-tls
   rules:
     - host: "adguard-ui.0xamit.com"
@@ -200,7 +200,7 @@ spec:
                 name: adguardhome
                 port:
                   name: http
-    - host: "dns.0xamit.com"
+    - host: "adguard.0xamit.com"
       http:
         paths:
           - path: /dns-query

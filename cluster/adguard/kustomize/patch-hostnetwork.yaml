@@ -40,7 +40,7 @@ spec:
   tls:
     - hosts:
         - adguard-ui.0xamit.com
-        - dns.0xamit.com # Add dns.0xamit.com for cert-manager
+        - adguard.0xamit.com # Add for cert-manager
       secretName: 0xamit-com-tls # Secret where cert-manager stores TLS certs
   rules:
     - host: adguard-ui.0xamit.com
@@ -54,7 +54,7 @@ spec:
                 port:
                   name: http # Refers to the HTTP UI port in Service
 
-    - host: dns.0xamit.com
+    - host: adguard.0xamit.com
       http:
         paths:
           - path: /dns-query # Standard path for DoH

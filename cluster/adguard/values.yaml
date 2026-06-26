@@ -54,7 +54,7 @@ ingress:
                 name: http # Target the main HTTP port for the UI
 
     # AdGuard Home DNS-over-HTTPS (DoH) endpoint
-    - host: dns.0xamit.com
+    - host: adguard.0xamit.com
       paths:
         - path: /dns-query # Standard path for DoH requests
           pathType: Prefix
@@ -70,7 +70,7 @@ ingress:
         - adguard-ui.0xamit.com
     - secretName: 0xamit-com-tls
       hosts:
-        - dns.0xamit.com
+        - adguard.0xamit.com
 
 # Persistence configuration (keeping default, but adjust size/storageClass as needed)
 persistence:
