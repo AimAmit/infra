@@ -26,7 +26,7 @@ spec:
       containers:
       - name: hermes
         image: nousresearch/hermes-agent:latest
-        command: ["gateway", "run"]
+        command: ["hermes", "gateway", "run"]
         env:
         - name: CF_AIG_TOKEN
           valueFrom:
