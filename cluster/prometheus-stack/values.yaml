@@ -26,6 +26,9 @@ grafana:
           - grafana.0xamit.com
 
 prometheus:
+  prometheusSpec:
+    retention: 10d
+    retentionSize: "5GB"
   additionalServiceMonitors:
   - name: "ingress-nginx-monitor"
     selector:
