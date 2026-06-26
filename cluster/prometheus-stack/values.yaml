@@ -1,4 +1,13 @@
 grafana:
+  grafana.ini:
+    server:
+      root_url: https://grafana.0xamit.com
+    security:
+      login_maximum_inactive_lifetime_days: 30
+      login_maximum_lifetime_days: 30
+      token_rotation_interval_minutes: 1440
+    session:
+      cookie_secure: true
   admin:
     existingSecret: "grafana-admin-credentials"
     userKey: admin-user
