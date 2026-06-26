@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes-agent
+  namespace: hermes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hermes
+  template:
+    metadata:
+      labels:
+        app: hermes
+    spec:
+      initContainers:
+      - name: init-config
+        image: alpine:latest
+        command: ['sh', '-c', 'cp /tmp/config.yaml /opt/data/config.yaml']
+        volumeMounts:
+        - name: config-volume
+          mountPath: /tmp/config.yaml
+          subPath: config.yaml
+        - name: data-volume
+          mountPath: /opt/data
+      containers:
+      - name: hermes
+        image: nousresearch/hermes-agent:latest
+        command: ["gateway", "run"]
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: cf-aig-token
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: telegram-token
+        volumeMounts:
+        - name: data-volume
+          mountPath: /opt/data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: hermes-data
+      - name: config-volume
+        configMap:
+          name: hermes-config
