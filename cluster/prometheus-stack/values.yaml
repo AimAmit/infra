@@ -1,4 +1,5 @@
 grafana:
+  adminUser: grafana-admin
   ingress:
     enabled: true
     ingressClassName: nginx
