@@ -5,9 +5,10 @@ metadata:
   namespace: hermes
 data:
   config.yaml: |
-    llm:
+    model:
       provider: gemini
-      model: gemini-2.5-flash
+      base_url: https://generativelanguage.googleapis.com/v1beta
+      model: gemini-3.5-flash
     telegram:
       enabled: true
       dmPolicy: pairing
