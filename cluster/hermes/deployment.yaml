@@ -47,6 +47,16 @@ spec:
         env:
         - name: GATEWAY_HEALTH_URL
           value: "http://localhost:8642"
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: gemini-token
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: telegram-token
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
