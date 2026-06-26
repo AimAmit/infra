@@ -28,11 +28,11 @@ spec:
         image: nousresearch/hermes-agent:latest
         command: ["hermes", "gateway", "run"]
         env:
-        - name: GOOGLE_API_KEY
+        - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: gemini-token
+              key: cf-aig-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
@@ -47,11 +47,11 @@ spec:
         env:
         - name: GATEWAY_HEALTH_URL
           value: "http://localhost:8642"
-        - name: GOOGLE_API_KEY
+        - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: gemini-token
+              key: cf-aig-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:

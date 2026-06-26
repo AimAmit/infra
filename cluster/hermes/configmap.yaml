@@ -6,9 +6,9 @@ metadata:
 data:
   config.yaml: |
     model:
-      provider: gemini
-      base_url: https://generativelanguage.googleapis.com/v1beta
-      model: gemini-3.5-flash
+      provider: openai-api
+      base_url: https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat
+      model: google-ai-studio/gemini-3.5-flash
     telegram:
       enabled: true
       dmPolicy: pairing
