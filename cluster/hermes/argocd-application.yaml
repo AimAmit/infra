@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'git@github.com:AimAmit/infra.git'
+    repoURL: 'https://github.com/AimAmit/infra.git'
     path: cluster/hermes
     targetRevision: HEAD
   destination:
