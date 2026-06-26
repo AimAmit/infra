@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adguardhome
+  namespace: adguard
+spec:
+  template:
+    spec:
+      containers:
+      - name: adguardhome
+        volumeMounts:
+        - name: certs
+          mountPath: /opt/adguardhome/ssl
+          readOnly: true
+      volumes:
+      - name: certs
+        secret:
+          secretName: 0xamit-com-tls
