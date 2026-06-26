@@ -1,11 +1,8 @@
-#helm upgrade --install tailscale . -n tailscale
-
 tailscale-operator:
   enabled: true
-
-oauthSecretVolume:
-  - csi:
-    driver: secrets-store.csi.k8s.io
-    readOnly: true
-    volumeAttributes:
-      secretProviderClass: tailscale-oauth
+  oauth:
+    clientId: ""
+    clientSecret: ""
+  operatorConfig:
+    defaultTags:
+      - "tag:k8s-operator"

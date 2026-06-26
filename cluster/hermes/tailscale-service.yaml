@@ -4,7 +4,7 @@ metadata:
   name: mac-ssh
   namespace: hermes
   annotations:
-    tailscale.com/tailnet-fqdn: "mbp-m1"
+    tailscale.com/tailnet-fqdn: "ashmit-kumars-macbook-pro.tail94c55.ts.net"
 spec:
   type: ExternalName
   externalName: placeholder
