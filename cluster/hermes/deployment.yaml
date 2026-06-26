@@ -28,13 +28,11 @@ spec:
         image: nousresearch/hermes-agent:latest
         command: ["hermes", "gateway", "run"]
         env:
-        - name: OPENAI_API_KEY
+        - name: GEMINI_API_KEY
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: cf-aig-token
-        - name: OPENAI_BASE_URL
-          value: "https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat"
+              key: gemini-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
