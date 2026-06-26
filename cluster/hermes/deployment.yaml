@@ -28,7 +28,7 @@ spec:
         image: nousresearch/hermes-agent:latest
         command: ["hermes", "gateway", "run"]
         env:
-        - name: GEMINI_API_KEY
+        - name: GOOGLE_API_KEY
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
