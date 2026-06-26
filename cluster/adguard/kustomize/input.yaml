@@ -1,0 +1,213 @@
+---
+# Source: adguardhome/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: adguardhome-work
+  namespace: adguard
+  annotations:
+    helm.sh/resource-policy: "keep"
+  labels:
+    helm.sh/chart: adguardhome-0.1.12
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+    app.kubernetes.io/version: "v0.107.64"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "1Gi"
+---
+# Source: adguardhome/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: adguardhome-conf
+  namespace: adguard
+  annotations:
+    helm.sh/resource-policy: "keep"
+  labels:
+    helm.sh/chart: adguardhome-0.1.12
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+    app.kubernetes.io/version: "v0.107.64"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "1Gi"
+---
+# Source: adguardhome/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguardhome
+  labels:
+    helm.sh/chart: adguardhome-0.1.12
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+    app.kubernetes.io/version: "v0.107.64"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http-setup
+    - port: 53
+      targetPort: 53
+      protocol: UDP
+      name: dns-udp
+    - port: 53
+      targetPort: 53
+      protocol: TCP
+      name: dns-tcp
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+    - port: 443
+      targetPort: 443
+      protocol: TCP
+      name: https
+    - port: 853
+      targetPort: 853
+      protocol: TCP
+      name: dot
+  selector:
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+---
+# Source: adguardhome/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adguardhome
+  labels:
+    helm.sh/chart: adguardhome-0.1.12
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+    app.kubernetes.io/version: "v0.107.64"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: adguardhome
+      app.kubernetes.io/instance: adguardhome
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: adguardhome-0.1.12
+        app.kubernetes.io/name: adguardhome
+        app.kubernetes.io/instance: adguardhome
+        app.kubernetes.io/version: "v0.107.64"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: adguardhome
+          image: "adguard/adguardhome:v0.107.64"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http-setup
+              protocol: TCP
+            - containerPort: 53
+              hostPort: 53
+              name: dns-udp
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 443
+              name: https
+              protocol: TCP
+            - containerPort: 853
+              hostPort: 853
+              name: dot
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: /opt/adguardhome/conf
+              name: conf
+            - mountPath: /opt/adguardhome/work
+              name: work
+      volumes:
+        - name: conf
+          persistentVolumeClaim:
+            claimName: adguardhome-conf
+        - name: work
+          persistentVolumeClaim:
+            claimName: adguardhome-work
+---
+# Source: adguardhome/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: adguardhome
+  labels:
+    helm.sh/chart: adguardhome-0.1.12
+    app.kubernetes.io/name: adguardhome
+    app.kubernetes.io/instance: adguardhome
+    app.kubernetes.io/version: "v0.107.64"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "adguard-ui.0xamit.com"
+      secretName: 0xamit-com-tls
+    - hosts:
+        - "dns.0xamit.com"
+      secretName: 0xamit-com-tls
+  rules:
+    - host: "adguard-ui.0xamit.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: adguardhome
+                port:
+                  name: http
+    - host: "dns.0xamit.com"
+      http:
+        paths:
+          - path: /dns-query
+            pathType: Prefix
+            backend:
+              service:
+                name: adguardhome
+                port:
+                  name: https
+

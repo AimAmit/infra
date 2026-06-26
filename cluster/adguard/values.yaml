@@ -120,6 +120,22 @@ podTemplate: # This key might vary, check helm show values adguardhome/adguardho
       mountPath: /opt/adguardhome/ssl # AdGuard Home will look for certs here
       readOnly: true
 
+# DNS Policy: Use explicit upstream DNS to avoid circular dependency.
+# AdGuard runs with hostNetwork on port 53, which breaks the node's
+# systemd-resolved stub listener. If the pod restarts and needs to
+# pull its image, node DNS is broken. Using dnsPolicy=None with
+# explicit upstream servers ensures AdGuard can always resolve
+# container registries independently.
+dnsPolicy: None
+dnsConfig:
+  nameservers:
+    - 8.8.8.8
+    - 1.1.1.1
+  searches:
+    - adguard.svc.cluster.local
+    - svc.cluster.local
+    - cluster.local
+
 # podSecurityContext: # Uncomment if needed
 #   fsGroup: 1000
 
