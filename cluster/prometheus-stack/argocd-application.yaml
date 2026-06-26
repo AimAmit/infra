@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-stack
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    namespace: prometheus-stack
+    server: https://kubernetes.default.svc
+  sources:
+    # Helm chart from the prometheus-community repo
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 87.2.1 # Latest stable
+      helm:
+        valueFiles:
+          - $values/cluster/prometheus-stack/values.yaml
+    # Values from your infra git repo
+    - repoURL: https://github.com/AimAmit/infra.git
+      targetRevision: HEAD
+      ref: values
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true # Required for CRDs in prometheus-stack
