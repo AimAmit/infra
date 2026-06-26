@@ -28,7 +28,7 @@ spec:
         image: nousresearch/hermes-agent:latest
         command: ["gateway", "run"]
         env:
-        - name: OPENAI_API_KEY
+        - name: CF_AIG_TOKEN
           valueFrom:
             secretKeyRef:
               name: hermes-secrets

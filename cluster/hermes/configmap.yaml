@@ -7,7 +7,7 @@ data:
   config.yaml: |
     llm:
       provider: openai
-      model: openai/gpt-5
+      model: gemini-3.5-flash
       base_url: "https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat"
     telegram:
       enabled: true
