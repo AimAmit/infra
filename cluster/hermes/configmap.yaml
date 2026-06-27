@@ -5,19 +5,22 @@ metadata:
   namespace: hermes
 data:
   config.yaml: |
-    model:
-      provider: openai-api
-      base_url: https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat
-      model: google-ai-studio/gemini-3.5-flash
-    telegram:
-      enabled: true
-      dmPolicy: pairing
-      groupPolicy: allowlist
-      streamMode: partial
-    terminal:
-      backend: ssh
-      ssh_host: mac-ssh
-      ssh_user: tnluser
-      ssh_key: /opt/hermes/ssh/id_ed25519
-    browser:
-      cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
+   model:
+  provider: openai-api
+  base_url: https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat
+  model: google-ai-studio/gemini-3.5-flash
+telegram:
+  enabled: true
+  dmPolicy: pairing
+  groupPolicy: allowlist
+  streamMode: partial
+terminal:
+  backend: ssh
+  ssh_host: mac-ssh
+  ssh_user: tnluser
+  ssh_key: /opt/hermes/ssh/id_ed25519
+browser:
+  cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
+platform_toolsets:
+  telegram: [delegation, clarify, session_search, todo, memory, skills, terminal, file]
+  cli: [delegation, clarify, session_search, todo, memory, skills, terminal, file]
