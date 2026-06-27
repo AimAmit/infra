@@ -16,13 +16,25 @@ spec:
       initContainers:
       - name: init-config
         image: alpine:latest
-        command: ['sh', '-c', 'cp /tmp/config.yaml /opt/data/config.yaml']
+        command:
+        - sh
+        - -c
+        - |
+          cp /tmp/config.yaml /opt/data/config.yaml
+          mkdir -p /opt/hermes/ssh
+          cp /tmp/ssh/id_ed25519 /opt/hermes/ssh/id_ed25519
+          chown 10000:10000 /opt/hermes/ssh/id_ed25519
+          chmod 400 /opt/hermes/ssh/id_ed25519
         volumeMounts:
         - name: config-volume
           mountPath: /tmp/config.yaml
           subPath: config.yaml
         - name: data-volume
           mountPath: /opt/data
+        - name: ssh-key-secret
+          mountPath: /tmp/ssh
+        - name: ssh-dir
+          mountPath: /opt/hermes/ssh
       containers:
       - name: hermes
         image: nousresearch/hermes-agent:latest
@@ -41,9 +53,8 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
-        - name: ssh-key-volume
+        - name: ssh-dir
           mountPath: /opt/hermes/ssh
-          readOnly: true
       - name: dashboard
         image: nousresearch/hermes-agent:latest
         command: ["hermes", "dashboard"]
@@ -70,7 +81,9 @@ spec:
       - name: config-volume
         configMap:
           name: hermes-config
-      - name: ssh-key-volume
+      - name: ssh-key-secret
         secret:
           secretName: hermes-ssh-key
           defaultMode: 256
+      - name: ssh-dir
+        emptyDir: {}
