@@ -16,8 +16,8 @@ data:
       streamMode: partial
     terminal:
       backend: ssh
-      host: mac-ssh
-      username: tnluser
-      key_path: /opt/hermes/ssh/id_ed25519
+      ssh_host: mac-ssh
+      ssh_user: tnluser
+      ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
