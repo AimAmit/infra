@@ -21,6 +21,3 @@ data:
       ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
-    platform_toolsets:
-      telegram: [delegation, clarify, session_search, todo, memory, skills, terminal, file]
-      cli: [delegation, clarify, session_search, todo, memory, skills, terminal, file]
