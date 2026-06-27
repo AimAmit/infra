@@ -7,3 +7,6 @@ resources:
 
 commonLabels:
   grafana_dashboard: "1"
+
+commonAnnotations:
+  grafana_folder: "Kubernetes System"
