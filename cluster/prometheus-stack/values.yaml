@@ -1,8 +1,10 @@
-defaultDashboardsEnabled: false
 grafana:
+  defaultDashboardsEnabled: false
   sidecar:
     dashboards:
       folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
   grafana.ini:
     server:
       root_url: https://grafana.0xamit.com
