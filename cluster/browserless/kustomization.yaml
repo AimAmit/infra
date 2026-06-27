@@ -4,4 +4,3 @@ namespace: browserless
 resources:
   - deployment.yaml
   - service.yaml
-  - servicemonitor.yaml

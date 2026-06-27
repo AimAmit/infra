@@ -5,7 +5,6 @@ metadata:
   namespace: hermes
   annotations:
     tailscale.com/tailnet-fqdn: "mbp-m1.tail94c55.ts.net"
-    tailscale.com/proxy-class: "default"
 spec:
   type: ExternalName
   externalName: placeholder
