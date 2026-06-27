@@ -140,8 +140,7 @@ spec:
               name: work
       volumes:
         - name: conf
-          configMap:
-            name: adguardhome-config
+          emptyDir: {}
         - name: work
           persistentVolumeClaim:
             claimName: adguardhome-work

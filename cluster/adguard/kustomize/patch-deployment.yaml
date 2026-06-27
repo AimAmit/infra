@@ -5,7 +5,19 @@ metadata:
 spec:
   template:
     spec:
-
+      initContainers:
+      - name: copy-config
+        image: alpine:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          cp /etc/adguard-config/AdGuardHome.yaml /opt/adguardhome/conf/AdGuardHome.yaml
+        volumeMounts:
+        - name: conf-ro
+          mountPath: /etc/adguard-config
+        - name: conf
+          mountPath: /opt/adguardhome/conf
       containers:
       - name: adguardhome
         volumeMounts:
@@ -13,6 +25,9 @@ spec:
           mountPath: /opt/adguardhome/ssl
           readOnly: true
       volumes:
+      - name: conf-ro
+        configMap:
+          name: adguardhome-config
       - name: certs
         secret:
           secretName: 0xamit-com-tls
