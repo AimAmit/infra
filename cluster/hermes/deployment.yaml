@@ -41,6 +41,9 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
+        - name: ssh-key-volume
+          mountPath: /opt/data/ssh
+          readOnly: true
       - name: dashboard
         image: nousresearch/hermes-agent:latest
         command: ["hermes", "dashboard"]
@@ -67,3 +70,7 @@ spec:
       - name: config-volume
         configMap:
           name: hermes-config
+      - name: ssh-key-volume
+        secret:
+          secretName: hermes-ssh-key
+          defaultMode: 256

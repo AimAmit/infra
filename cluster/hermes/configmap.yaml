@@ -15,6 +15,9 @@ data:
       groupPolicy: allowlist
       streamMode: partial
     terminal:
-      backend: local
+      backend: ssh
+      host: mac-ssh
+      username: tnluser
+      key_path: /opt/data/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
