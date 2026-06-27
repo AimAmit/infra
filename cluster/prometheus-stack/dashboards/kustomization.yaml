@@ -4,6 +4,9 @@ kind: Kustomization
 resources:
   - dashboard-cluster-monitoring.yaml
   - dashboard-node-exporter.yaml
+  - dashboard-nginx-ingress.yaml
+  - dashboard-k8s-views-pods.yaml
+  - dashboard-k8s-views-global.yaml
 
 commonLabels:
   grafana_dashboard: "1"
