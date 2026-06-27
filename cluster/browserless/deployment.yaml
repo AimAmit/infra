@@ -21,6 +21,8 @@ spec:
           ports:
             - containerPort: 3000
           env:
+            - name: EXTERNAL
+              value: "ws://browserless.browserless.svc.cluster.local:3000"
             - name: MAX_CONCURRENT_SESSIONS
               value: "5"
             - name: MAX_QUEUE_LENGTH

@@ -26,11 +26,7 @@ spec:
       containers:
       - name: hermes
         image: nousresearch/hermes-agent:latest
-        command: ["sh", "-c"]
-        args:
-          - >
-            sed -i 's/    if ws_url:/    if "0.0.0.0" in ws_url or "127.0.0.1" in ws_url:\n        import urllib.parse\n        raw_parsed = urllib.parse.urlparse(raw if ":\/\/" in raw else "http:\/\/" + raw)\n        ws_url = urllib.parse.urlparse(ws_url)._replace(netloc=raw_parsed.netloc).geturl()\n    if ws_url:/' /opt/hermes/tools/browser_tool.py &&
-            exec hermes gateway run
+        command: ["hermes", "gateway", "run"]
         env:
         - name: OPENAI_API_KEY
           valueFrom:
@@ -47,11 +43,7 @@ spec:
           mountPath: /opt/data
       - name: dashboard
         image: nousresearch/hermes-agent:latest
-        command: ["sh", "-c"]
-        args:
-          - >
-            sed -i 's/    if ws_url:/    if "0.0.0.0" in ws_url or "127.0.0.1" in ws_url:\n        import urllib.parse\n        raw_parsed = urllib.parse.urlparse(raw if ":\/\/" in raw else "http:\/\/" + raw)\n        ws_url = urllib.parse.urlparse(ws_url)._replace(netloc=raw_parsed.netloc).geturl()\n    if ws_url:/' /opt/hermes/tools/browser_tool.py &&
-            exec hermes dashboard
+        command: ["hermes", "dashboard"]
         env:
         - name: GATEWAY_HEALTH_URL
           value: "http://localhost:8642"
