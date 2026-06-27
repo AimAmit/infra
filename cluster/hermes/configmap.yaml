@@ -15,7 +15,4 @@ data:
       groupPolicy: allowlist
       streamMode: partial
     terminal:
-      backend: ssh
-      ssh_host: mac-ssh
-      ssh_port: 22
-      ssh_user: tnluser
+      backend: local
