@@ -21,3 +21,10 @@ data:
       ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
+    platform_toolsets:
+      telegram: [delegation, clarify, session_search, todo, memory, skills]
+      cli: [delegation, clarify, session_search, todo, memory, skills]
+    compression:
+      enabled: true
+      threshold: 0.20
+      target_ratio: 0.10

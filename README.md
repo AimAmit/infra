@@ -20,6 +20,7 @@ This repository contains the GitOps configuration for our Kubernetes cluster, ma
 
 ## Recent Configurations
 - **Hermes SSH Integration**: Hermes is configured with `terminal.backend = ssh`. The SSH private key is injected securely via a Kubernetes Secret (bypassing Git) and the connection routes through the Tailscale Egress Proxy pod to the local Mac.
+- **Hermes Token Optimization**: We implemented the strict delegation pattern by trimming the primary agent's tools to just orchestrator components (`[delegation, clarify, session_search, todo, memory, skills]`). Memory compaction threshold has been tightened (from 0.5 to 0.2) reducing baseline token footprint.
 - **Grafana Dashboards**: Dashboards are managed as ConfigMaps generated from JSON and synced via Kustomize to prevent sidecar overwrite issues.
 - **Ingress NGINX Metrics**: The NGINX Ingress controller has been patched to expose port `10254`, allowing Prometheus to scrape its metrics.
 
