@@ -5,27 +5,7 @@ metadata:
 spec:
   template:
     spec:
-      initContainers:
-      - name: inject-password
-        image: alpine:latest
-        command:
-        - /bin/sh
-        - -c
-        - |
-          if [ -f /opt/adguardhome/conf/AdGuardHome.yaml ]; then
-            HASH=$(cat /etc/adguard-secret/password)
-            awk -v hash="$HASH" '
-              /name: adguard-admin/ { print; in_user=1; next }
-              in_user && /password:/ { sub(/password: .*/, "password: " hash); in_user=0 }
-              {print}
-            ' /opt/adguardhome/conf/AdGuardHome.yaml > /tmp/AdGuardHome.yaml
-            mv /tmp/AdGuardHome.yaml /opt/adguardhome/conf/AdGuardHome.yaml
-          fi
-        volumeMounts:
-        - name: conf
-          mountPath: /opt/adguardhome/conf
-        - name: admin-secret
-          mountPath: /etc/adguard-secret
+
       containers:
       - name: adguardhome
         volumeMounts:
@@ -36,6 +16,3 @@ spec:
       - name: certs
         secret:
           secretName: 0xamit-com-tls
-      - name: admin-secret
-        secret:
-          secretName: adguard-admin-credentials

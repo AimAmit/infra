@@ -19,27 +19,7 @@ spec:
   resources:
     requests:
       storage: "1Gi"
----
-# Source: adguardhome/templates/pvc.yaml
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: adguardhome-conf
-  namespace: adguard
-  annotations:
-    helm.sh/resource-policy: "keep"
-  labels:
-    helm.sh/chart: adguardhome-0.1.12
-    app.kubernetes.io/name: adguardhome
-    app.kubernetes.io/instance: adguardhome
-    app.kubernetes.io/version: "v0.107.64"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  accessModes:
-    - "ReadWriteOnce"
-  resources:
-    requests:
-      storage: "1Gi"
+
 ---
 # Source: adguardhome/templates/service.yaml
 apiVersion: v1
@@ -160,8 +140,8 @@ spec:
               name: work
       volumes:
         - name: conf
-          persistentVolumeClaim:
-            claimName: adguardhome-conf
+          configMap:
+            name: adguardhome-config
         - name: work
           persistentVolumeClaim:
             claimName: adguardhome-work

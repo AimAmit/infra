@@ -4,3 +4,8 @@ resources:
 patchesStrategicMerge:
   - patch-hostnetwork.yaml
   - patch-deployment.yaml
+
+configMapGenerator:
+  - name: adguardhome-config
+    files:
+      - AdGuardHome.yaml
