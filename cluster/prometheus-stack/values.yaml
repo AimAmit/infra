@@ -1,4 +1,5 @@
 grafana:
+  defaultDashboardsEnabled: false
   grafana.ini:
     server:
       root_url: https://grafana.0xamit.com
@@ -8,6 +9,28 @@ grafana:
       token_rotation_interval_minutes: 1440
     session:
       cookie_secure: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: 'Kubernetes System'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      k8s-cluster:
+        gnetId: 315
+        revision: 3
+        datasource: Prometheus
+      node-exporter:
+        gnetId: 1860
+        revision: 37
+        datasource: Prometheus
   admin:
     existingSecret: "grafana-admin-credentials"
     userKey: admin-user

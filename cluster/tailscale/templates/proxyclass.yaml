@@ -1,0 +1,10 @@
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: default
+  # ProxyClass is cluster-scoped, but let's be safe.
+spec:
+  metrics:
+    enable: true
+  serviceMonitor:
+    enable: true
