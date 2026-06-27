@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: typeahead-rs
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    namespace: typeahead
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/AimAmit/infra.git
+    targetRevision: HEAD
+    path: projects/typeahead-rs
+    helm:
+      valueFiles:
+        - values.yaml
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

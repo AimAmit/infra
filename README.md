@@ -1,6 +1,89 @@
 # Infrastructure Repository
 
-This repository contains the GitOps configuration for our Kubernetes cluster, managed by ArgoCD.
+This repository is the **single source of truth** for the entire Kubernetes cluster. Everything is managed via GitOps through ArgoCD.
+
+## 🚀 Bootstrap (Fresh Cluster)
+
+To deploy the entire infrastructure on a fresh Kubernetes (K3s) cluster, run these commands:
+
+```bash
+# 1. Install K3s
+curl -sfL https://get.k3s.io | sh -
+
+# 2. Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# 3. Bootstrap everything (single command)
+kubectl apply -f https://raw.githubusercontent.com/AimAmit/infra/HEAD/bootstrap/root-app.yaml
+```
+
+That's it. The `root-app` uses the **App-of-Apps pattern** — it watches `bootstrap/apps/`, which contains all ArgoCD Application definitions + the StorageClass. ArgoCD cascades and creates all services automatically.
+
+> **Note:** The Application YAMLs in `bootstrap/apps/` are copies of the `argocd-application.yaml` files from each service directory. When updating an app's ArgoCD configuration, update both the source file in the service directory and the copy in `bootstrap/apps/`.
+
+### What gets created
+
+The root app syncs the following automatically:
+
+| Service | Type | Source |
+|---------|------|--------|
+| AdGuard Home | Kustomize | `cluster/adguard/` |
+| Browserless | Kustomize | `cluster/browserless/` |
+| Hermes Agent | Kustomize | `cluster/hermes/` |
+| Prometheus Stack | Helm (multi-source) | `cluster/prometheus-stack/` |
+| Grafana Dashboards | Kustomize | `cluster/prometheus-stack/dashboards/` |
+| Redis | Helm (multi-source) | `cluster/redis/` |
+| Tailscale Operator | Helm | `cluster/tailscale/` |
+| Icon Generator | Helm | `projects/icon-generator--embedding/` |
+| Typeahead-rs | Helm | `projects/typeahead-rs/` |
+| StorageClass | Raw YAML | `cluster/storage/storageclass.yaml` |
+
+### Adding a new service
+
+1. Create your manifests in `cluster/<service-name>/` or `projects/<service-name>/`
+2. Add an `argocd-application.yaml` in that directory
+3. Reference it in `bootstrap/kustomization.yaml`
+4. Commit and push — ArgoCD picks it up automatically
+
+## 📁 Repository Structure
+
+```
+infra/
+├── bootstrap/                    # App-of-Apps (entry point)
+│   ├── root-app.yaml             # The single bootstrapping Application
+│   └── kustomization.yaml        # References all argocd-application.yaml files
+├── cluster/                      # Cluster services
+│   ├── adguard/                  # DNS ad-blocking
+│   ├── browserless/              # Headless browser
+│   ├── hermes/                   # Remote execution agent
+│   ├── ingress/                  # NGINX Ingress controller
+│   ├── metallb/                  # Bare-metal load balancer
+│   ├── prometheus-stack/         # Monitoring (Prometheus + Grafana)
+│   │   ├── storage/              # PVs for Prometheus & Grafana
+│   │   └── dashboards/           # Grafana dashboard ConfigMaps
+│   ├── redis/                    # Redis cache
+│   │   └── storage/              # PV for Redis
+│   ├── storage/                  # Shared StorageClass definition
+│   └── tailscale/                # VPN / secure networking
+└── projects/                     # Application workloads
+    ├── icon-generator--embedding/
+    └── typeahead-rs/
+```
+
+## 💾 Storage Architecture
+
+All persistent data lives on a dedicated OCI block volume mounted at `/mnt/oci-block-volume/` on the node. Each service owns its PersistentVolume definition:
+
+| Service | PV Path | Managed By |
+|---------|---------|------------|
+| Redis | `/mnt/oci-block-volume/redis` | `cluster/redis/storage/redis-pv.yaml` |
+| Prometheus | `/mnt/oci-block-volume/prometheus` | `cluster/prometheus-stack/storage/prometheus-pv.yaml` |
+| Grafana | `/mnt/oci-block-volume/grafana` | `cluster/prometheus-stack/storage/grafana-pv.yaml` |
+| Hermes | `/mnt/oci-block-volume/hermes` | `cluster/hermes/pv.yaml` |
+| AdGuard | `/mnt/oci-block-volume/adguard-work` | `cluster/adguard/pv.yaml` |
+
+**Principle:** Static configuration → ConfigMaps. Growing data → PersistentVolumes on the block volume.
 
 ## Cluster Components
 

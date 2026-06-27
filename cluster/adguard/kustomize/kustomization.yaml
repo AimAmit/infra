@@ -1,5 +1,6 @@
 resources:
   - input.yaml
+  - ../pv.yaml
 
 patchesStrategicMerge:
   - patch-hostnetwork.yaml
