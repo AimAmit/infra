@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-storage
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: local-path-storage
+  source:
+    repoURL: https://github.com/AimAmit/infra.git
+    targetRevision: HEAD
+    path: cluster/storage
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

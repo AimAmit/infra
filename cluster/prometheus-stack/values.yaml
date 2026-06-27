@@ -1,7 +1,10 @@
 grafana:
   persistence:
     enabled: true
-    storageClassName: local-storage
+    type: pvc
+    storageClassName: local-path
+    accessModes:
+      - ReadWriteOnce
     size: 1Gi
   defaultDashboardsEnabled: false
   sidecar:
@@ -42,7 +45,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: local-storage
+          storageClassName: local-path
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:

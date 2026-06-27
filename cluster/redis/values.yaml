@@ -6,7 +6,7 @@ replica:
 persistence:
   enabled: true
   size: 1Gi
-  storageClass: "local-storage" # Replace with your desired storage class or leave empty for default
+  storageClass: "local-path" # Replace with your desired storage class or leave empty for default
 
 service:
   type: ClusterIP # For internal access within the cluster (default)
@@ -15,8 +15,10 @@ service:
 master:
   persistence:
     enabled: true
+    storageClass: "local-path"
     size: 1Gi
-    storageClass: "local-storage" # Replace with your desired storage class
+    accessModes:
+      - ReadWriteOnce
   service:
     type: NodePort # Internal service for Redis master
   extraFlags: # Add extra command line flags for Redis master

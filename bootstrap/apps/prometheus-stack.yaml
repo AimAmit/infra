@@ -20,10 +20,6 @@ spec:
     - repoURL: https://github.com/AimAmit/infra.git
       targetRevision: HEAD
       ref: values
-    # PV definitions for Prometheus and Grafana
-    - repoURL: https://github.com/AimAmit/infra.git
-      targetRevision: HEAD
-      path: cluster/prometheus-stack/storage
   syncPolicy:
     automated:
       prune: true

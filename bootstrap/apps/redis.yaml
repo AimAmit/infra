@@ -11,16 +11,13 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: redis
-      targetRevision: 21.1.3
+      targetRevision: 27.0.12
       helm:
         valueFiles:
           - $values/cluster/redis/values.yaml
     - repoURL: https://github.com/AimAmit/infra.git
       targetRevision: HEAD
       ref: values
-    - repoURL: https://github.com/AimAmit/infra.git
-      targetRevision: HEAD
-      path: cluster/redis/storage
   syncPolicy:
     automated:
       selfHeal: true
