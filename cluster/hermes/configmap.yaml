@@ -16,3 +16,5 @@ data:
       streamMode: partial
     terminal:
       backend: local
+    browser:
+      cdp_url: ws://browserless.browserless.svc.cluster.local:3000

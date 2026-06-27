@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: browserless
+  namespace: browserless
+  labels:
+    app: browserless
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: browserless
+  template:
+    metadata:
+      labels:
+        app: browserless
+    spec:
+      containers:
+        - name: browserless
+          image: ghcr.io/browserless/chromium:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MAX_CONCURRENT_SESSIONS
+              value: "5"
+            - name: MAX_QUEUE_LENGTH
+              value: "10"
+            - name: CONNECTION_TIMEOUT
+              value: "300000"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
