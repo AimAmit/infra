@@ -18,6 +18,6 @@ data:
       backend: ssh
       host: mac-ssh
       username: tnluser
-      key_path: /opt/data/ssh/id_ed25519
+      key_path: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/

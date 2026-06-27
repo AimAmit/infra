@@ -42,7 +42,7 @@ spec:
         - name: data-volume
           mountPath: /opt/data
         - name: ssh-key-volume
-          mountPath: /opt/data/ssh
+          mountPath: /opt/hermes/ssh
           readOnly: true
       - name: dashboard
         image: nousresearch/hermes-agent:latest
