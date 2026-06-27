@@ -73,10 +73,18 @@ ingress:
         - adguard.0xamit.com
 
 # Persistence configuration (keeping default, but adjust size/storageClass as needed)
+# Persistence configuration
 persistence:
   enabled: true
   size: 1Gi
-  # storageClass: "your-storage-class" # Uncomment and specify if you have a custom storage class
+  storageClass: "local-storage"
+  # Disable conf PV since we are using a ConfigMap now
+  config:
+    enabled: false
+  # Enable work PV for growing data
+  data:
+    enabled: true
+    storageClass: "local-storage"
 
 # Probes - crucial for Kubernetes to know if your app is healthy
 # AdGuard Home's web interface is typically on port 80 or 3000.
@@ -114,10 +122,17 @@ podTemplate: # This key might vary, check helm show values adguardhome/adguardho
         #     path: cert.pem
         #   - key: tls.key
         #     path: key.pem
+    - name: adguard-config-volume
+      configMap:
+        name: adguard-config
 
   volumeMounts:
     - name: adguard-dns-tls-volume
       mountPath: /opt/adguardhome/ssl # AdGuard Home will look for certs here
+      readOnly: true
+    - name: adguard-config-volume
+      mountPath: /opt/adguardhome/conf/AdGuardHome.yaml
+      subPath: AdGuardHome.yaml
       readOnly: true
 
 # DNS Policy: Use explicit upstream DNS to avoid circular dependency.

@@ -1,4 +1,8 @@
 grafana:
+  persistence:
+    enabled: true
+    storageClassName: local-storage
+    size: 1Gi
   defaultDashboardsEnabled: false
   sidecar:
     dashboards:
@@ -35,6 +39,14 @@ prometheus:
   prometheusSpec:
     retention: 10d
     retentionSize: "5GB"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
   additionalServiceMonitors:
   - name: "ingress-nginx-monitor"
     selector:
