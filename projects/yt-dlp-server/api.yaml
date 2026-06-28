@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yt-dlp-api
+  namespace: yt-dlp
+  labels:
+    app: yt-dlp-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yt-dlp-api
+  template:
+    metadata:
+      labels:
+        app: yt-dlp-api
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/AimAmit/yt-dlp-server:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: POT_PROVIDER_URL
+          value: "http://bgutil-pot-svc:4416"
+        - name: ASSETS_DIR
+          value: "/assets"
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 500m
+          requests:
+            memory: 256Mi
+            cpu: 200m
+        volumeMounts:
+        - name: assets-storage
+          mountPath: /assets
+      volumes:
+      - name: assets-storage
+        persistentVolumeClaim:
+          claimName: yt-dlp-assets-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: yt-dlp-api-svc
+  namespace: yt-dlp
+spec:
+  selector:
+    app: yt-dlp-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: yt-dlp-api-ingress
+  namespace: yt-dlp
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: yt-api.0xamit.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: yt-dlp-api-svc
+            port:
+              number: 8000

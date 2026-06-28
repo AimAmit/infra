@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yt-dlp-server
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AimAmit/infra.git
+    targetRevision: HEAD
+    path: projects/yt-dlp-server
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: yt-dlp
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bgutil-pot
+  namespace: yt-dlp
+  labels:
+    app: bgutil-pot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bgutil-pot
+  template:
+    metadata:
+      labels:
+        app: bgutil-pot
+    spec:
+      containers:
+      - name: bgutil-pot
+        image: ghcr.io/jim60105/bgutil-pot:latest
+        args: ["server", "--host", "0.0.0.0", "--port", "4416"]
+        ports:
+        - containerPort: 4416
+        resources:
+          limits:
+            memory: 128Mi
+            cpu: 200m
+          requests:
+            memory: 64Mi
+            cpu: 100m
+        readinessProbe:
+          tcpSocket:
+            port: 4416
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bgutil-pot-svc
+  namespace: yt-dlp
+spec:
+  selector:
+    app: bgutil-pot
+  ports:
+    - port: 4416
+      targetPort: 4416
+  type: ClusterIP

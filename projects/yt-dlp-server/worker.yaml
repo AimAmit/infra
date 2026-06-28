@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yt-dlp-worker
+  namespace: yt-dlp
+  labels:
+    app: yt-dlp-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yt-dlp-worker
+  template:
+    metadata:
+      labels:
+        app: yt-dlp-worker
+    spec:
+      containers:
+      - name: worker
+        image: ghcr.io/AimAmit/yt-dlp-server:latest
+        command: ["tini", "--", "celery", "-A", "app.core.celery_app:celery_app", "worker", "-Q", "downloads", "--loglevel=info"]
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: POT_PROVIDER_URL
+          value: "http://bgutil-pot-svc:4416"
+        - name: ASSETS_DIR
+          value: "/assets"
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 1000m
+          requests:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
+        - name: assets-storage
+          mountPath: /assets
+      volumes:
+      - name: assets-storage
+        persistentVolumeClaim:
+          claimName: yt-dlp-assets-pvc
