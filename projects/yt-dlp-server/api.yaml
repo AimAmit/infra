@@ -41,8 +41,7 @@ spec:
         - name: assets-storage
           mountPath: /assets
         - name: cookies-secret
-          mountPath: /app/cookies.txt
-          subPath: cookies.txt
+          mountPath: /app/secrets/cookies
           readOnly: true
       volumes:
       - name: assets-storage
