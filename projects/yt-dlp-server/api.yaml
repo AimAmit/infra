@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/AimAmit/yt-dlp-server:latest
+        image: ghcr.io/aimamit/yt-dlp-server:latest
         ports:
         - containerPort: 8000
         env:

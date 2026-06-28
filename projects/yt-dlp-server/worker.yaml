@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: ghcr.io/AimAmit/yt-dlp-server:latest
+        image: ghcr.io/aimamit/yt-dlp-server:latest
         command: ["tini", "--", "celery", "-A", "app.core.celery_app:celery_app", "worker", "-Q", "downloads", "--loglevel=info"]
         env:
         - name: REDIS_URL
