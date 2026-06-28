@@ -17,8 +17,7 @@ spec:
     spec:
       containers:
       - name: bgutil-pot
-        image: ghcr.io/jim60105/bgutil-pot:latest
-        args: ["server", "--host", "0.0.0.0", "--port", "4416"]
+        image: brainicism/bgutil-ytdlp-pot-provider:latest
         ports:
         - containerPort: 4416
         resources:
