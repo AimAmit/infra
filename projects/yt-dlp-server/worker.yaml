@@ -19,7 +19,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: worker
-        image: ghcr.io/aimamit/yt-dlp-server:sha-f7f1fa0
+        image: ghcr.io/aimamit/yt-dlp-server:latest
         command: ["tini", "--", "celery", "-A", "app.core.celery_app:celery_app", "worker", "-Q", "downloads", "--loglevel=info"]
         env:
         - name: REDIS_URL

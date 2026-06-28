@@ -15,11 +15,9 @@ spec:
       labels:
         app: yt-dlp-api
     spec:
-      imagePullSecrets:
-      - name: ghcr-secret
       containers:
       - name: api
-        image: ghcr.io/aimamit/yt-dlp-server:sha-f7f1fa0
+        image: ghcr.io/aimamit/yt-dlp-server:latest
         ports:
         - containerPort: 8000
         env:
