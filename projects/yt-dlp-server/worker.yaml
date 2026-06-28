@@ -15,12 +15,13 @@ spec:
       labels:
         app: yt-dlp-worker
     spec:
-      imagePullPolicy: Always
+      
       imagePullSecrets:
       - name: ghcr-secret
       containers:
       - name: worker
-        image: ghcr.io/aimamit/yt-dlp-server@sha256:ecf0faa7c19a51b46c94927ad7d1b76906918ea29a952414db83093c646606d0
+        imagePullPolicy: Always
+        image: ghcr.io/aimamit/yt-dlp-server@sha256:b5341640369f3e932861c2aab6e61025031084a4e01f8c7ba9937ad6f2807b85
         command: ["tini", "--", "celery", "-A", "app.core.celery_app:celery_app", "worker", "-Q", "downloads", "--loglevel=info"]
         env:
         - name: REDIS_URL
