@@ -21,7 +21,7 @@ spec:
       containers:
       - name: worker
         imagePullPolicy: Always
-        image: ghcr.io/aimamit/yt-dlp-server:01afce15cb15fa31fdbb0ea968e9b7ce261f02df
+        image: ghcr.io/aimamit/yt-dlp-server:171cc4126813f6dda78c4864ce77efdfa26ad641
         command: ["tini", "--", "celery", "-A", "app.core.celery_app:celery_app", "worker", "-Q", "downloads", "--loglevel=info"]
         env:
         - name: REDIS_URL
