@@ -18,7 +18,7 @@ spec:
       containers:
       - name: api
         imagePullPolicy: Always
-        image: ghcr.io/aimamit/yt-dlp-server:sha-f5ea632
+        image: ghcr.io/aimamit/yt-dlp-server:ae3eb62a8ac9d304ff023c645725e9a7875d63af
         ports:
         - containerPort: 8000
         env:
