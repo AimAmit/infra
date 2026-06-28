@@ -20,9 +20,9 @@ spec:
         image: brainicism/bgutil-ytdlp-pot-provider:latest
         env:
         - name: HTTP_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "http://127.0.0.1:8888"
         - name: HTTPS_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "http://127.0.0.1:8888"
         - name: NO_PROXY
           value: "localhost,127.0.0.1"
         ports:
@@ -39,28 +39,20 @@ spec:
             port: 4416
           initialDelaySeconds: 5
           periodSeconds: 10
-        volumeMounts:
-        - name: privoxy-config-vol
-          mountPath: /etc/privoxy/custom.conf
-          subPath: custom.conf
-      - name: tor
-        image: alpine:3.18
-        command: ["sh", "-c", "apk add --no-cache tor && tor"]
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        envFrom:
+        - secretRef:
+            name: gluetun-config
+            optional: true
+        env:
+        - name: HTTPPROXY
+          value: "on"
         ports:
-        - containerPort: 9050
-      - name: privoxy
-        image: alpine:3.18
-        command: ["sh", "-c", "apk add --no-cache privoxy && privoxy --no-daemon /etc/privoxy/custom.conf"]
-        ports:
-        - containerPort: 8118
-        volumeMounts:
-        - name: privoxy-config-vol
-          mountPath: /etc/privoxy/custom.conf
-          subPath: custom.conf
-      volumes:
-      - name: privoxy-config-vol
-        configMap:
-          name: privoxy-config
+        - containerPort: 8888
 ---
 apiVersion: v1
 kind: Service

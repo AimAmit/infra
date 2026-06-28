@@ -8,4 +8,4 @@ resources:
   - api.yaml
   - worker.yaml
   - ingress.yaml
-  - privoxy-config.yaml
+
