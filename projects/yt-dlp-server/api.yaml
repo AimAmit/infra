@@ -38,10 +38,18 @@ spec:
         volumeMounts:
         - name: assets-storage
           mountPath: /assets
+        - name: cookies-secret
+          mountPath: /app/cookies.txt
+          subPath: cookies.txt
+          readOnly: true
       volumes:
       - name: assets-storage
         persistentVolumeClaim:
           claimName: yt-dlp-assets-pvc
+      - name: cookies-secret
+        secret:
+          secretName: yt-dlp-cookies
+          optional: true
 ---
 apiVersion: v1
 kind: Service
