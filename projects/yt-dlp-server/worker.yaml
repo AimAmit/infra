@@ -15,6 +15,7 @@ spec:
       labels:
         app: yt-dlp-worker
     spec:
+      imagePullPolicy: Always
       imagePullSecrets:
       - name: ghcr-secret
       containers:
