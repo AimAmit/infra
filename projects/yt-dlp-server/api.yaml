@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/aimamit/yt-dlp-server:latest
+        image: ghcr.io/aimamit/yt-dlp-server@sha256:ecf0faa7c19a51b46c94927ad7d1b76906918ea29a952414db83093c646606d0
         ports:
         - containerPort: 8000
         env:
