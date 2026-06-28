@@ -31,9 +31,9 @@ spec:
         - name: ASSETS_DIR
           value: "/assets"
         - name: HTTP_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "http://127.0.0.1:1080"
         - name: HTTPS_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "http://127.0.0.1:1080"
         - name: NO_PROXY
           value: "localhost,127.0.0.1,bgutil-pot-svc,redis,yt-dlp-api-svc"
         resources:
@@ -50,18 +50,9 @@ spec:
           mountPath: /app/secrets/cookies
           readOnly: true
       - name: warp
-        image: monius/docker-warp-socks:latest
+        image: caomingjun/warp:latest
         ports:
-        - containerPort: 9091
-      - name: privoxy
-        image: alpine:3.18
-        command: ["sh", "-c", "apk add --no-cache privoxy && privoxy --no-daemon /etc/privoxy/custom.conf"]
-        ports:
-        - containerPort: 8118
-        volumeMounts:
-        - name: privoxy-config-vol
-          mountPath: /etc/privoxy/custom.conf
-          subPath: custom.conf
+        - containerPort: 1080
       volumes:
       - name: assets-storage
         persistentVolumeClaim:
@@ -70,6 +61,3 @@ spec:
         secret:
           secretName: yt-dlp-cookies
           optional: true
-      - name: privoxy-config-vol
-        configMap:
-          name: privoxy-config
