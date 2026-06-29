@@ -41,7 +41,7 @@ spec:
           periodSeconds: 10
       - name: tor
         image: alpine:3.18
-        command: ["sh", "-c", "apk add tor && echo 'SocksPort 0.0.0.0:9050' > /etc/tor/torrc && tor -f /etc/tor/torrc"]
+        command: ["sh", "-c", "apk add tor && echo -e 'SocksPort 0.0.0.0:9050\\nMaxCircuitDirtiness 10' > /etc/tor/torrc && tor -f /etc/tor/torrc"]
         ports:
         - containerPort: 9050
       - name: privoxy
