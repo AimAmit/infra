@@ -20,9 +20,9 @@ spec:
         image: brainicism/bgutil-ytdlp-pot-provider:latest
         env:
         - name: HTTP_PROXY
-          value: "http://127.0.0.1:1080"
+          value: "http://127.0.0.1:8118"
         - name: HTTPS_PROXY
-          value: "http://127.0.0.1:1080"
+          value: "http://127.0.0.1:8118"
         - name: NO_PROXY
           value: "localhost,127.0.0.1"
         ports:
@@ -39,10 +39,16 @@ spec:
             port: 4416
           initialDelaySeconds: 5
           periodSeconds: 10
-      - name: warp
-        image: caomingjun/warp:latest
+      - name: tor
+        image: alpine:3.18
+        command: ["sh", "-c", "apk add tor && echo 'SocksPort 0.0.0.0:9050' > /etc/tor/torrc && tor -f /etc/tor/torrc"]
         ports:
-        - containerPort: 1080
+        - containerPort: 9050
+      - name: privoxy
+        image: alpine:3.18
+        command: ["sh", "-c", "apk add privoxy && echo -e 'listen-address 0.0.0.0:8118\\nforward-socks5t / 127.0.0.1:9050 .' > /custom.conf && privoxy --no-daemon /custom.conf"]
+        ports:
+        - containerPort: 8118
 ---
 apiVersion: v1
 kind: Service
