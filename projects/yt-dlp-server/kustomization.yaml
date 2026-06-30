@@ -4,7 +4,8 @@ resources:
   - namespace.yaml
   - pvc.yaml
   - redis.yaml
-  - bgutil-pot.yaml
+  - wg-secret.yaml
+  - warp-proxy.yaml
   - api.yaml
   - worker.yaml
   - ingress.yaml

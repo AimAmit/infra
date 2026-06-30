@@ -26,16 +26,15 @@ spec:
         env:
         - name: REDIS_URL
           value: "redis://redis:6379/0"
-        - name: POT_PROVIDER_URL
-          value: "http://bgutil-pot-svc:4416"
+
         - name: ASSETS_DIR
           value: "/assets"
         - name: HTTP_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "socks5h://warp-proxy-svc:1080"
         - name: HTTPS_PROXY
-          value: "http://127.0.0.1:8118"
+          value: "socks5h://warp-proxy-svc:1080"
         - name: NO_PROXY
-          value: "localhost,127.0.0.1,bgutil-pot-svc,redis,yt-dlp-api-svc"
+          value: "localhost,127.0.0.1,redis,yt-dlp-api-svc"
         resources:
           limits:
             memory: 1Gi
@@ -46,16 +45,7 @@ spec:
         volumeMounts:
         - name: assets-storage
           mountPath: /assets
-      - name: tor
-        image: alpine:3.18
-        command: ["sh", "-c", "apk add tor && echo -e 'SocksPort 0.0.0.0:9050\\nMaxCircuitDirtiness 10' > /etc/tor/torrc && tor -f /etc/tor/torrc"]
-        ports:
-        - containerPort: 9050
-      - name: privoxy
-        image: alpine:3.18
-        command: ["sh", "-c", "apk add privoxy && echo -e 'listen-address 0.0.0.0:8118\\nforward-socks5t / 127.0.0.1:9050 .' > /custom.conf && privoxy --no-daemon /custom.conf"]
-        ports:
-        - containerPort: 8118
+
       volumes:
       - name: assets-storage
         persistentVolumeClaim:
