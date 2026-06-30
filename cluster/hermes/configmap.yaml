@@ -21,7 +21,3 @@ data:
       ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
-    dashboard:
-      basic_auth:
-        username: admin
-        password_hash: scrypt$16384$8$1$brs/LsNhvjOOUmMCiCifyQ==$0OmGf+1rEWvWFMmGmvmBfa50OoKsLCo69bjPqyj8KCM=

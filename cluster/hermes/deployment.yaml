@@ -57,7 +57,7 @@ spec:
           mountPath: /opt/hermes/ssh
       - name: dashboard
         image: nousresearch/hermes-agent:latest
-        command: ["hermes", "dashboard", "--host", "0.0.0.0"]
+        command: ["hermes", "dashboard"]
         env:
         - name: GATEWAY_HEALTH_URL
           value: "http://localhost:8642"
@@ -74,6 +74,9 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
+      - name: tailscale-proxy
+        image: alpine/socat:latest
+        command: ["socat", "TCP-LISTEN:9120,fork", "TCP:127.0.0.1:9119"]
       volumes:
       - name: data-volume
         persistentVolumeClaim:

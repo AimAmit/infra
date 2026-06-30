@@ -13,7 +13,7 @@ spec:
   ports:
     - name: dashboard
       port: 80
-      targetPort: 9119
+      targetPort: 9120
     - name: gateway
       port: 8642
       targetPort: 8642
