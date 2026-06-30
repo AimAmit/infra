@@ -21,3 +21,14 @@ data:
       ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 9120;
+        location / {
+          proxy_pass http://127.0.0.1:9119;
+          proxy_set_header Host 127.0.0.1;
+        }
+      }
+    }

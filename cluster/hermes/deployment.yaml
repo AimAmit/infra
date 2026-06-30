@@ -75,8 +75,11 @@ spec:
         - name: data-volume
           mountPath: /opt/data
       - name: tailscale-proxy
-        image: alpine/socat:latest
-        command: ["socat", "TCP-LISTEN:9120,fork", "TCP:127.0.0.1:9119"]
+        image: nginx:alpine
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
       volumes:
       - name: data-volume
         persistentVolumeClaim:
