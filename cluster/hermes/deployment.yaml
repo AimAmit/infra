@@ -74,12 +74,7 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
-      - name: tailscale-proxy
-        image: nginx:alpine
-        volumeMounts:
-        - name: config-volume
-          mountPath: /etc/nginx/nginx.conf
-          subPath: nginx.conf
+
       volumes:
       - name: data-volume
         persistentVolumeClaim:
