@@ -5,4 +5,3 @@ resources:
   - pvc.yaml
   - tailscale-service.yaml
   - deployment.yaml
-  - service.yaml
