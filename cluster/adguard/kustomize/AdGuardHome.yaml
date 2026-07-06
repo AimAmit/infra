@@ -6,7 +6,7 @@ http:
   session_ttl: 720h
 users:
   - name: adguard-admin
-    password: $2b$10$SLZWL.10IN7.ur9byASIu.0bFYheF4q6Nq3kuKdW6GHQAbcD6Sase
+    password: $2y$10$am/Cw.9ueeE1zrYnaN.n6.Sq96lxXXxSEQxXqWZj7Rm5C91M9Mxg6
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

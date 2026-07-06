@@ -4,7 +4,6 @@ resources:
   - namespace.yaml
   - pvc.yaml
   - redis.yaml
-  - wg-secret.yaml
   - warp-proxy.yaml
   - api.yaml
   - worker.yaml
