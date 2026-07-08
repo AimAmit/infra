@@ -30,9 +30,9 @@ spec:
         - name: ASSETS_DIR
           value: "/assets"
         - name: HTTP_PROXY
-          value: "socks5h://warp-proxy-svc:1080"
+          value: "socks5h://warp-proxy-svc.warp-proxy.svc.cluster.local:1080"
         - name: HTTPS_PROXY
-          value: "socks5h://warp-proxy-svc:1080"
+          value: "socks5h://warp-proxy-svc.warp-proxy.svc.cluster.local:1080"
         - name: NO_PROXY
           value: "localhost,127.0.0.1,redis,yt-dlp-api-svc"
         resources:

@@ -28,6 +28,10 @@ spec:
           value: "redis://redis:6379/0"
         - name: POT_PROVIDER_URL
           value: "http://bgutil-pot-svc:4416"
+        - name: HTTP_PROXY
+          value: "socks5h://warp-proxy-svc.warp-proxy.svc.cluster.local:1080"
+        - name: HTTPS_PROXY
+          value: "socks5h://warp-proxy-svc.warp-proxy.svc.cluster.local:1080"
         - name: ASSETS_DIR
           value: "/assets"
         resources:
