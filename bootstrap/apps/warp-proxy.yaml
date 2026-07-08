@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/AimAmit/infra.git
     targetRevision: HEAD
-    path: projects/warp-proxy
+    path: cluster/warp-proxy
   destination:
     server: https://kubernetes.default.svc
     namespace: warp-proxy
