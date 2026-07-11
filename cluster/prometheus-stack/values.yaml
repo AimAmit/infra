@@ -1,3 +1,6 @@
+alertmanager:
+  enabled: false
+
 grafana:
   persistence:
     enabled: true
@@ -40,6 +43,12 @@ grafana:
 
 prometheus:
   prometheusSpec:
+    alertingEndpoints:
+      - name: prometheus-stack-grafana
+        namespace: prometheus-stack
+        port: http-web
+        pathPrefix: "/api/alertmanager/grafana"
+        apiVersion: v2
     retention: 10d
     retentionSize: "5GB"
     storageSpec:
