@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-mcp
+  namespace: mcp
+  labels:
+    app: grafana-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-mcp
+  template:
+    metadata:
+      labels:
+        app: grafana-mcp
+    spec:
+      containers:
+      - name: grafana-mcp
+        image: grafana/mcp-grafana:latest
+        imagePullPolicy: Always
+        args:
+        - "-t"
+        - "sse"
+        - "--address"
+        - "0.0.0.0:8000"
+        - "--allowed-hosts"
+        - "grafana-mcp.tail94c55.ts.net,localhost:8000,127.0.0.1:8000,[::1]:8000"
+        env:
+        - name: GRAFANA_URL
+          value: "http://prometheus-stack-grafana.prometheus-stack.svc.cluster.local:80"
+        - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: grafana-mcp-secret
+              key: GRAFANA_SERVICE_ACCOUNT_TOKEN
+        ports:
+        - containerPort: 8000
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-mcp
+  namespace: mcp
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "grafana-mcp"
+spec:
+  loadBalancerClass: tailscale
+  ports:
+  - port: 80
+    targetPort: 8000
+  selector:
+    app: grafana-mcp
+  type: LoadBalancer
