@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpnbook-proxy
+  namespace: vpnbook-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vpnbook-proxy
+  template:
+    metadata:
+      labels:
+        app: vpnbook-proxy
+    spec:
+      containers:
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.40.0
+          ports:
+            - name: http-proxy
+              containerPort: 8888
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          env:
+            # --- Custom WireGuard (VPNBook US exit) ---
+            - name: VPN_SERVICE_PROVIDER
+              value: "custom"
+            - name: VPN_TYPE
+              value: "wireguard"
+            # PrivateKey comes from the manually-created Secret (never in git)
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vpnbook-wg
+                  key: WIREGUARD_PRIVATE_KEY
+            # Peer PublicKey / endpoint / address are not sensitive
+            - name: WIREGUARD_PUBLIC_KEY
+              value: "Rn6w1t6actF9XC0bMIXxO25rf31uFqm2/n5sYyK1UzQ="
+            - name: WIREGUARD_ADDRESSES
+              value: "10.104.0.251/32"
+            - name: VPN_ENDPOINT_IP
+              value: "147.135.37.178"
+            - name: VPN_ENDPOINT_PORT
+              value: "443"
+            # --- Built-in HTTP proxy ---
+            - name: HTTPPROXY
+              value: "on"
+            - name: HTTPPROXY_LISTENING_ADDRESS
+              value: ":8888"
+            # --- Killswitch: allow replies to cluster pods/services + tailnet only.
+            # Advertised pod CIDR 10.40.0.0/14 also covers the k3s service CIDR.
+            # 100.64.0.0/10 = tailscale CGNAT (for local-over-tailscale access).
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.40.0.0/14,100.64.0.0/10"
+            - name: TZ
+              value: "UTC"
+          volumeMounts:
+            - name: tun
+              mountPath: /dev/net/tun
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "64Mi"
+            limits:
+              memory: "128Mi"
+      volumes:
+        - name: tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice

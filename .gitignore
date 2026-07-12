@@ -1,2 +1,6 @@
 creds
 **/charts
+
+# WireGuard / VPN configs — contain private keys, never commit
+*.conf
+
