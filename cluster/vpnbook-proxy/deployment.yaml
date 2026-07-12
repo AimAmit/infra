@@ -60,6 +60,10 @@ spec:
               value: "on"
             - name: HTTPPROXY_LISTENING_ADDRESS
               value: ":8888"
+            # Open the proxy port through the killswitch for external clients
+            # (in-cluster pods + tailnet). Without this only loopback reaches it.
+            - name: FIREWALL_INPUT_PORTS
+              value: "8888"
             # --- Killswitch: allow replies to LOCAL cluster clients only; all
             # public traffic still forced through the VPN. Calico pods
             # 192.168.0.0/16, services 10.96.0.0/12, nodes 10.0.0.0/16.
