@@ -23,7 +23,7 @@ spec:
             capabilities:
               add: ["NET_ADMIN"]
           env:
-            # --- Custom WireGuard (VPNBook US exit) ---
+            # --- Custom WireGuard (Proton VPN US-FREE#66 exit) ---
             - name: VPN_SERVICE_PROVIDER
               value: "custom"
             - name: VPN_TYPE
@@ -32,17 +32,17 @@ spec:
             - name: WIREGUARD_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: vpnbook-wg
+                  name: proton-wg
                   key: WIREGUARD_PRIVATE_KEY
             # Peer PublicKey / endpoint / address are not sensitive
             - name: WIREGUARD_PUBLIC_KEY
-              value: "Rn6w1t6actF9XC0bMIXxO25rf31uFqm2/n5sYyK1UzQ="
+              value: "Uqp1/VJ/Lz2VoN/2D0HEG7G8WDxLJm7+JNC5KZrUREw="
             - name: WIREGUARD_ADDRESSES
-              value: "10.104.0.251/32"
+              value: "10.2.0.2/32"
             - name: VPN_ENDPOINT_IP
-              value: "147.135.37.178"
+              value: "149.88.30.88"
             - name: VPN_ENDPOINT_PORT
-              value: "443"
+              value: "51820"
             # --- Built-in HTTP proxy ---
             - name: HTTPPROXY
               value: "on"

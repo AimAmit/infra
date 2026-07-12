@@ -1,8 +1,12 @@
-# VPNBook Proxy
+# VPN Proxy (Proton US exit)
+
+> Namespace/dir still named `vpnbook-proxy` for historical reasons; the tunnel
+> now uses **Proton VPN** (VPNBook's free shared-key WireGuard was too unstable).
 
 WireGuard client (via [gluetun](https://github.com/qdm12/gluetun)) that tunnels
-outbound traffic through a **VPNBook US exit** and exposes a local HTTP proxy on
-port `8888`. Pure egress — nothing is exposed to the public internet.
+outbound traffic through a **Proton VPN US exit** (`US-FREE#66`) and exposes a
+local HTTP proxy on port `8888`. Pure egress — nothing exposed to the public
+internet.
 
 Use it to route headless-browser / `yt-dlp` traffic through a US IP, e.g. for
 YouTube. Killswitch is on by default: if the tunnel drops, traffic is blocked
@@ -11,18 +15,18 @@ YouTube. Killswitch is on by default: if the tunnel drops, traffic is blocked
 ## Secret setup (do this once, before ArgoCD syncs)
 
 The WireGuard private key is **not** stored in git. Create it manually from the
-VPNBook `.conf` file's `PrivateKey`:
+Proton VPN `.conf` file's `PrivateKey`:
 
 ```bash
 kubectl create namespace vpnbook-proxy   # ok if it already exists
-kubectl -n vpnbook-proxy create secret generic vpnbook-wg \
-  --from-literal=WIREGUARD_PRIVATE_KEY='<PrivateKey from vpnbook-wg_*.conf>'
+kubectl -n vpnbook-proxy create secret generic proton-wg \
+  --from-literal=WIREGUARD_PRIVATE_KEY='<PrivateKey from the Proton .conf>'
 ```
 
 `secret.example.yaml` is a template only — do not fill it in or commit it.
 
 The non-sensitive peer values (public key, endpoint, address) live directly in
-`deployment.yaml`. If VPNBook rotates the config, update those + rerun the
+`deployment.yaml`. If you regenerate the Proton config, update those + rerun the
 secret command above.
 
 ## Usage from cluster workloads
@@ -59,5 +63,5 @@ kubectl -n vpnbook-proxy exec deploy/vpnbook-proxy -- \
   wget -qO- --proxy off https://ipinfo.io/country
 ```
 
-VPNBook rotates keys periodically; if the tunnel stops connecting, pull a fresh
-`.conf` and update the secret + `deployment.yaml`.
+If the tunnel stops connecting, regenerate the Proton WireGuard config and
+update the secret + peer values in `deployment.yaml`.
