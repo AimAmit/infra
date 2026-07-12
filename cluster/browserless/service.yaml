@@ -5,6 +5,12 @@ metadata:
   namespace: browserless
   labels:
     app: browserless
+  annotations:
+    # Publish to the tailnet (operator) as MagicDNS name "browserless".
+    # Tailnet-only, never public. NOTE: browserless has no TOKEN set, so any
+    # device on your tailnet can drive it — fine for a private tailnet.
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "browserless"
 spec:
   selector:
     app: browserless
