@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vpnbook-proxy-svc
-  namespace: vpnbook-proxy
+  name: vpn-proxy-svc
+  namespace: vpn-proxy
   annotations:
     # Tailscale operator publishes this Service to the tailnet as MagicDNS
-    # name "vpnbook-proxy". Reachable only from your tailnet, never public.
+    # name "vpn-proxy". Reachable only from your tailnet, never public.
     tailscale.com/expose: "true"
-    tailscale.com/hostname: "vpnbook-proxy"
+    tailscale.com/hostname: "vpn-proxy"
 spec:
   selector:
-    app: vpnbook-proxy
+    app: vpn-proxy
   ports:
     - name: http-proxy
       port: 8888

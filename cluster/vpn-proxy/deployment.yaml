@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vpnbook-proxy
-  namespace: vpnbook-proxy
+  name: vpn-proxy
+  namespace: vpn-proxy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vpnbook-proxy
+      app: vpn-proxy
   template:
     metadata:
       labels:
-        app: vpnbook-proxy
+        app: vpn-proxy
     spec:
       containers:
         - name: gluetun

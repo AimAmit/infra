@@ -1,7 +1,7 @@
 # VPN Proxy (Proton US exit)
 
-> Namespace/dir still named `vpnbook-proxy` for historical reasons; the tunnel
-> now uses **Proton VPN** (VPNBook's free shared-key WireGuard was too unstable).
+> Backed by **Proton VPN**. (Originally prototyped on VPNBook, whose free
+> shared-key WireGuard was too unstable to use.)
 
 WireGuard client (via [gluetun](https://github.com/qdm12/gluetun)) that tunnels
 outbound traffic through a **Proton VPN US exit** (`US-FREE#66`) and exposes a
@@ -18,8 +18,8 @@ The WireGuard private key is **not** stored in git. Create it manually from the
 Proton VPN `.conf` file's `PrivateKey`:
 
 ```bash
-kubectl create namespace vpnbook-proxy   # ok if it already exists
-kubectl -n vpnbook-proxy create secret generic proton-wg \
+kubectl create namespace vpn-proxy   # ok if it already exists
+kubectl -n vpn-proxy create secret generic proton-wg \
   --from-literal=WIREGUARD_PRIVATE_KEY='<PrivateKey from the Proton .conf>'
 ```
 
@@ -36,9 +36,9 @@ Point any namespace's workload at the proxy:
 ```yaml
 env:
   - name: HTTP_PROXY
-    value: "http://vpnbook-proxy-svc.vpnbook-proxy.svc.cluster.local:8888"
+    value: "http://vpn-proxy-svc.vpn-proxy.svc.cluster.local:8888"
   - name: HTTPS_PROXY
-    value: "http://vpnbook-proxy-svc.vpnbook-proxy.svc.cluster.local:8888"
+    value: "http://vpn-proxy-svc.vpn-proxy.svc.cluster.local:8888"
 ```
 
 Fallback: if the OVH exit gets blocked, switch these to the existing
@@ -46,11 +46,13 @@ Fallback: if the OVH exit gets blocked, switch these to the existing
 
 ## Usage from local (over Tailscale)
 
-The Service is published to the tailnet by the Tailscale operator as MagicDNS
-name `vpnbook-proxy`. From any device on your tailnet:
+The Service is published to the tailnet by the Tailscale operator as a device
+named `vpn-proxy`. With MagicDNS on, reach it by short name; otherwise use the
+full FQDN `vpn-proxy.<your-tailnet>.ts.net`. From any device on your tailnet:
 
 ```bash
-curl --proxy http://vpnbook-proxy:8888 https://ipinfo.io/country   # expect: US
+curl --proxy http://vpn-proxy:8888 https://ipinfo.io/country                  # MagicDNS
+curl --proxy http://vpn-proxy.<your-tailnet>.ts.net:8888 https://ipinfo.io/country  # FQDN
 ```
 
 Or set it as the system/browser HTTP proxy to route local traffic through the
@@ -59,7 +61,7 @@ US exit. Reachable only over the tailnet — not public.
 ## Verify exit location
 
 ```bash
-kubectl -n vpnbook-proxy exec deploy/vpnbook-proxy -- \
+kubectl -n vpn-proxy exec deploy/vpn-proxy -- \
   wget -qO- --proxy off https://ipinfo.io/country
 ```
 
