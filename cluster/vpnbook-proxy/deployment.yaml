@@ -60,11 +60,13 @@ spec:
               value: "on"
             - name: HTTPPROXY_LISTENING_ADDRESS
               value: ":8888"
-            # --- Killswitch: allow replies to cluster pods/services + tailnet only.
-            # Advertised pod CIDR 10.40.0.0/14 also covers the k3s service CIDR.
-            # 100.64.0.0/10 = tailscale CGNAT (for local-over-tailscale access).
+            # --- Killswitch: allow replies to LOCAL cluster clients only; all
+            # public traffic still forced through the VPN. Calico pods
+            # 192.168.0.0/16, services 10.96.0.0/12, nodes 10.0.0.0/16.
+            # Tailnet clients reach us via the operator proxy pod (a 192.168.x
+            # pod), so the pod CIDR already covers local-over-tailscale too.
             - name: FIREWALL_OUTBOUND_SUBNETS
-              value: "10.40.0.0/14,100.64.0.0/10"
+              value: "192.168.0.0/16,10.96.0.0/12,10.0.0.0/16"
             - name: TZ
               value: "UTC"
           volumeMounts:
