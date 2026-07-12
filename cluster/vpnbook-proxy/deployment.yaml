@@ -43,6 +43,18 @@ spec:
               value: "149.88.30.88"
             - name: VPN_ENDPOINT_PORT
               value: "51820"
+            # Lower MTU: pod traffic is already encapsulated by the CNI, so the
+            # default WireGuard MTU fragments large TLS packets (they silently
+            # drop while small packets pass). 1320 leaves headroom.
+            - name: WIREGUARD_MTU
+              value: "1320"
+            # Plaintext DNS instead of DNS-over-TLS — DoT's TCP/TLS handshake
+            # is the first casualty of MTU issues and trips the healthcheck.
+            - name: DOT
+              value: "off"
+            # Don't restart the tunnel on the first blip while it settles.
+            - name: HEALTH_VPN_DURATION_INITIAL
+              value: "30s"
             # --- Built-in HTTP proxy ---
             - name: HTTPPROXY
               value: "on"
