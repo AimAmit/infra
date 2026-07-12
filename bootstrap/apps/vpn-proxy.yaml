@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: vpnbook-proxy
+  name: vpn-proxy
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/AimAmit/infra.git
     targetRevision: HEAD
-    path: cluster/vpnbook-proxy
+    path: cluster/vpn-proxy
   destination:
     server: https://kubernetes.default.svc
-    namespace: vpnbook-proxy
+    namespace: vpn-proxy
   syncPolicy:
     automated:
       selfHeal: true
