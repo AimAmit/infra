@@ -29,21 +29,21 @@ The two "three-tier" ideas are different axes and both apply:
 
 ```
 Mac: /Users/tnluser/obsidian/obsidian-vault/
-├── rw/         Syncthing "vault-rw"  Send & Receive  ⇅
-├── ro/         Syncthing "vault-ro"  Send Only       ⇩ (Mac → cluster only)
+├── rw/         Syncthing "obsidian-rw"  Send & Receive  ⇅
+├── ro/         Syncthing "obsidian-ro"  Send Only       ⇩ (Mac → cluster only)
 ├── private/    no share — never leaves the Mac
 └── .obsidian/  not shared
 
         ⇅ Syncthing over tailnet only (no global discovery, no relays)
 
 Cluster: namespace agent-knowledge
-├── PVC agent-vault-data (RWO, local-path, Prune=false)
+├── PVC obsidian-data (RWO, local-path, Prune=false)
 │   ├── rw/     Send & Receive  + cluster-side git history (in .stignore)
 │   └── ro/     Receive Only
 ├── Deployment syncthing   (mounts PVC)
-├── Deployment vault-mcp   (mounts PVC; rw/ writable, ro/ read-only mount)
-│   └── Service vault-mcp  ClusterIP :8080  — no tailscale.com/expose, no ingress
-└── hermes → http://vault-mcp.agent-knowledge.svc.cluster.local:8080/mcp
+├── Deployment obsidian-mcp   (mounts PVC; rw/ writable, ro/ read-only mount)
+│   └── Service obsidian-mcp  ClusterIP :8080  — no tailscale.com/expose, no ingress
+└── hermes → http://obsidian-mcp.agent-knowledge.svc.cluster.local:8080/mcp
              Bearer token from hermes-secrets
 ```
 
@@ -79,7 +79,7 @@ any Mac-side tooling.
 - GUI (8384) gets credentials on both sides, and the cluster GUI port is **not** on any Service
   — `kubectl port-forward` only. An open Syncthing GUI allows reconfiguring shares, which is
   arbitrary read/write of the PVC. Same reasoning as leaving 1455 off the codex-lb Service.
-- Folder IDs: `vault-rw`, `vault-ro`. `.stignore` in `rw/`: `.git`.
+- Folder IDs: `obsidian-rw`, `obsidian-ro`. `.stignore` in `rw/`: `.git`.
 
 ## Vault layout (content conventions re-cut by access tier)
 
@@ -127,31 +127,31 @@ are allowed but must use an alias** (`[[private/xyz|personal note]]`) when the f
 is sensitive. This is a convention for the user, not enforceable; documented so the leak is a
 choice rather than a surprise.
 
-## vault-mcp service
+## obsidian-mcp service
 
 Small HTTP MCP server (FastMCP or equivalent), image built in this repo, mounted:
 
-- `/vault/rw` from the PVC subPath `rw` — writable
-- `/vault/ro` from the PVC subPath `ro` — `readOnly: true` volumeMount (kernel-enforced,
+- `/obsidian/rw` from the PVC subPath `rw` — writable
+- `/obsidian/ro` from the PVC subPath `ro` — `readOnly: true` volumeMount (kernel-enforced,
   third line of defense behind sync direction and app checks)
 
 ### Tools
 
 | Tool | Access | Notes |
 | --- | --- | --- |
-| `vault_search(query, tier?)` | rw+ro | ripgrep-backed full-text; returns path + snippet |
-| `vault_read(path)` | rw+ro | whole note |
-| `vault_backlinks(path)` | rw+ro | notes linking to this one |
-| `vault_neighbors(path)` | rw+ro | outgoing `[[links]]`, tags, frontmatter |
-| `vault_capture(title, content, tags)` | create in `rw/Inbox/Agent Captures/` | |
-| `vault_log_daily(content)` | create `rw/Daily/YYYY-MM-DD--agent-NNN.md` | server picks NNN |
-| `vault_propose(target_path, rationale, content)` | create in `rw/Proposals/` | never touches target |
-| `vault_status()` | none | sync health, last git commit, counts |
+| `obsidian_search(query, tier?)` | rw+ro | ripgrep-backed full-text; returns path + snippet |
+| `obsidian_read(path)` | rw+ro | whole note |
+| `obsidian_backlinks(path)` | rw+ro | notes linking to this one |
+| `obsidian_neighbors(path)` | rw+ro | outgoing `[[links]]`, tags, frontmatter |
+| `obsidian_capture(title, content, tags)` | create in `rw/Inbox/Agent Captures/` | |
+| `obsidian_log_daily(content)` | create `rw/Daily/YYYY-MM-DD--agent-NNN.md` | server picks NNN |
+| `obsidian_propose(target_path, rationale, content)` | create in `rw/Proposals/` | never touches target |
+| `obsidian_status()` | none | sync health, last git commit, counts |
 
 No delete tool. No rename tool. No generic write tool. A capability that does not exist cannot
 be talked into firing.
 
-The "knowledge graph" is `vault_backlinks` + `vault_neighbors` over parsed markdown links, tags,
+The "knowledge graph" is `obsidian_backlinks` + `obsidian_neighbors` over parsed markdown links, tags,
 and frontmatter — Obsidian's own model. In-memory index rebuilt on file change (watchdog) or
 lazily per request; no database.
 
@@ -161,7 +161,7 @@ Every path argument, before any filesystem call:
 
 1. Reject absolute paths, `..` segments, null bytes, backslashes.
 2. Join to the tier root, `realpath()` the result, assert the resolved path is still under
-   `/vault/rw` or `/vault/ro`. This kills symlink escapes — vaults do contain symlinks.
+   `/obsidian/rw` or `/obsidian/ro`. This kills symlink escapes — vaults do contain symlinks.
 3. Reject dotfiles and dot-directories (`.obsidian`, `.git`, `.stignore`, `.DS_Store`).
 4. Only `.md` files are readable or creatable.
 5. **All writes are `O_CREAT|O_EXCL`** — create-only, atomic, can never modify or truncate an
@@ -171,7 +171,7 @@ Every path argument, before any filesystem call:
 6. Write size cap (64 KiB/note), rate cap (30 creates/hour) — a runaway loop cannot flood the
    vault or the sync channel.
 7. Bearer token required on every request; token lives in `hermes-secrets` under
-   `vault-mcp-token`, minted out-of-band, never in git.
+   `obsidian-mcp-token`, minted out-of-band, never in git.
 
 ### Prompt-injection stance
 
@@ -194,8 +194,8 @@ These are hermes-side conventions (system prompt + `MEMORY.md`), not infrastruct
 - **Tier 1 hot memory** — hermes's built-in `MEMORY.md`/`USER.md`, kept ≤ ~4–6 K chars. Every
   char is paid per turn against pooled ChatGPT quota shared with Codex CLI, so lean matters.
 - **Tier 2 living files** — when hot memory nears capacity, stable entries are *proposed* for
-  promotion into `ro/System/Assistant/` via `vault_propose`; user merges.
-- **Tier 3 daily notes** — searchable timeline via `vault_log_daily` fragments.
+  promotion into `ro/System/Assistant/` via `obsidian_propose`; user merges.
+- **Tier 3 daily notes** — searchable timeline via `obsidian_log_daily` fragments.
 - **Content routing** — operational events → daily log; system fixes → `rw/System/logs/`;
   corrections → hot memory; recurring workflows → hermes skills.
 - **Scheduled briefings** — `hermes cron` in-cluster (morning briefing, etc.), writing via the
@@ -214,8 +214,8 @@ cluster/agent-knowledge/
   pvc.yaml            # 5Gi, Prune=false annotation (holds the only always-on copy + git history)
   syncthing.yaml      # Deployment + config; GUI not on any Service
   syncthing-service.yaml  # sync port only, tailscale.com/expose for Mac→pod dial
-  vault-mcp.yaml      # Deployment: image from this repo; ro/ mounted readOnly
-  vault-mcp-service.yaml  # ClusterIP :8080, cluster-internal only
+  obsidian-mcp.yaml      # Deployment: image from this repo; ro/ mounted readOnly
+  obsidian-mcp-service.yaml  # ClusterIP :8080, cluster-internal only
 ```
 
 Cluster facts already verified: single node, `local-path` default SC, **no volume expansion**
@@ -223,7 +223,7 @@ Cluster facts already verified: single node, `local-path` default SC, **no volum
 same lesson as codex-lb), Tailscale operator + subnet router present, hermes MCP support
 confirmed (`hermes mcp add --url ... --auth header`).
 
-Secrets: `vault-mcp-token` (hermes-secrets + vault-mcp env), Syncthing GUI passwords — all
+Secrets: `obsidian-mcp-token` (hermes-secrets + obsidian-mcp env), Syncthing GUI passwords — all
 created out-of-band with kubectl; repo is public, nothing sensitive committed.
 
 ## Rollout order
@@ -237,22 +237,22 @@ created out-of-band with kubectl; repo is public, nothing sensitive committed.
 
 ## Verification
 
-1. Note created in Obsidian `rw/` appears in pod `/vault/rw`; and vice versa via
-   `vault_capture` — appears in Obsidian.
+1. Note created in Obsidian `rw/` appears in pod `/obsidian/rw`; and vice versa via
+   `obsidian_capture` — appears in Obsidian.
 2. Note created in Obsidian `ro/` appears in pod; file touched inside pod `ro/` does **not**
    appear on Mac and is reverted on next Syncthing scan.
 3. Nothing under `private/` exists anywhere in the cluster (`find /vault -path '*private*'`
-   empty; Syncthing share list shows exactly vault-rw, vault-ro).
-4. `vault_read("../../etc/passwd")`, `vault_read("/vault/rw/../ro/x")`, symlink inside `rw/`
+   empty; Syncthing share list shows exactly obsidian-rw, obsidian-ro).
+4. `obsidian_read("../../etc/passwd")`, `obsidian_read("/obsidian/rw/../ro/x")`, symlink inside `rw/`
    pointing at `private/` — all rejected; symlink read attempt fails the realpath check.
-5. `vault_capture` twice with same title → second gets a distinct filename (O_EXCL respected,
+5. `obsidian_capture` twice with same title → second gets a distinct filename (O_EXCL respected,
    no overwrite).
-6. Unauthenticated request to vault-mcp → 401. `kubectl get svc -n agent-knowledge` shows no
-   tailscale annotation on vault-mcp, no ingress/httproute anywhere in the namespace, Syncthing
+6. Unauthenticated request to obsidian-mcp → 401. `kubectl get svc -n agent-knowledge` shows no
+   tailscale annotation on obsidian-mcp, no ingress/httproute anywhere in the namespace, Syncthing
    Service carries sync port only.
 7. Syncthing cluster pod: global discovery and relays disabled in its config; device list
    contains exactly the Mac.
-8. Pod restart: vault intact, git history intact (PVC), hermes `vault_status()` healthy.
+8. Pod restart: vault intact, git history intact (PVC), hermes `obsidian_status()` healthy.
 9. Mac asleep: hermes still reads/writes cluster copy; on wake, Syncthing reconciles; agent
    writes appear in Obsidian.
 10. Cluster-side `git log` in `rw/` shows one commit per agent write window; `.git` absent on
