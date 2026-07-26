@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codex-lb
+  namespace: codex-lb
+spec:
+  replicas: 1
+  strategy:
+    # SQLite on a ReadWriteOnce volume: the old pod must release the mount
+    # before the new one can claim it.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: codex-lb
+  template:
+    metadata:
+      labels:
+        app: codex-lb
+    spec:
+      # The pod never talks to the API server.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: codex-lb
+          # Digest-pinned: the 1.22.0 tag is mutable on ghcr.
+          image: ghcr.io/soju06/codex-lb:1.22.0@sha256:3010b3c5567522fbb6e7225bdbe963fa1038c2584641fcec69094875e40e36e5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 2455
+              protocol: TCP
+            - name: oauth
+              # Bound only during an OAuth account-add. Deliberately absent
+              # from the Service so it is never published to the tailnet;
+              # reach it with a port-forward to this Deployment instead.
+              containerPort: 1455
+              protocol: TCP
+          # No env vars: every value needed here is already the upstream
+          # default, including the SQLite path and encryption key location
+          # inside the data dir. Everything else is set in the dashboard.
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/codex-lb
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/.cache
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: codex-lb-data
+        # Required by readOnlyRootFilesystem.
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}

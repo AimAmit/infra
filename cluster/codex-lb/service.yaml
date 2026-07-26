@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: codex-lb
+  namespace: codex-lb
+  labels:
+    app: codex-lb
+  annotations:
+    # Publish to the tailnet (operator) as MagicDNS name "codex-lb".
+    # Tailnet-only, never public: type is ClusterIP and there is no Ingress,
+    # HTTPRoute, or LoadBalancer anywhere in this app.
+    #
+    # NEVER add tailscale.com/funnel here. Funnel would publish this service
+    # on the public internet, and the dashboard grants full control over every
+    # pooled ChatGPT account.
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "codex-lb"
+    # HARDENING, not yet enabled: without a distinct tag, every device on the
+    # tailnet can reach the dashboard, which grants full control over pooled
+    # ChatGPT accounts. To restrict access, first add to the tailnet policy:
+    #
+    #   "tagOwners": { "tag:codex-lb": ["tag:k8s-operator"] }
+    #
+    # plus a grant limiting tag:codex-lb to your own devices, THEN uncomment:
+    # tailscale.com/tags: "tag:codex-lb"
+    #
+    # Annotating with a tag that has no tagOwners entry makes the operator's
+    # proxy fail to authenticate, so the policy edit must land first.
+spec:
+  type: ClusterIP
+  selector:
+    app: codex-lb
+  ports:
+    # 2455 only. Port 1455 (OAuth callback) is intentionally not published;
+    # account-add runs over `kubectl port-forward` to the Deployment.
+    - name: http
+      port: 2455
+      targetPort: http

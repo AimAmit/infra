@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codex-lb-data
+  namespace: codex-lb
+  annotations:
+    # Holds encryption.key, which decrypts every stored ChatGPT OAuth token.
+    # Never let an ArgoCD prune delete this volume: losing the key orphans
+    # every pooled account with no way to recover them.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

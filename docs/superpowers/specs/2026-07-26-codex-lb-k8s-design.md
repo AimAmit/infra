@@ -58,8 +58,27 @@ https://chatgpt.com/backend-api       (upstream, via node egress)
 
 ### Components
 
-**Deployment `codex-lb`** — image `ghcr.io/soju06/codex-lb:1.22.0`, pinned by tag. One replica.
-Container listens on 2455 (entrypoint pins `--port 2455`) and 1455.
+**Deployment `codex-lb`** — image pinned to digest, since the `1.22.0` tag is mutable on ghcr:
+
+```
+ghcr.io/soju06/codex-lb:1.22.0@sha256:3010b3c5567522fbb6e7225bdbe963fa1038c2584641fcec69094875e40e36e5
+```
+
+One replica, `strategy: Recreate` because SQLite sits on a ReadWriteOnce volume and the old pod
+must release the mount first. Container listens on 2455 (entrypoint pins `--port 2455`); 1455 is
+bound only while an OAuth account-add is in flight.
+
+Hardened to match upstream's own chart defaults, which are known to work with this image:
+
+- pod: `runAsNonRoot: true`, `runAsUser: 1000`, `runAsGroup: 1000`, `fsGroup: 1000`,
+  `seccompProfile: RuntimeDefault`. The UID must be explicit — the image's `USER app` is a name,
+  not a number, so `runAsNonRoot` alone would fail kubelet's non-root verification.
+- container: `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`,
+  `readOnlyRootFilesystem: true`.
+- `automountServiceAccountToken: false` — the pod never contacts the API server.
+- emptyDir mounts at `/tmp` and `/app/.cache`, required by the read-only root filesystem.
+- resources: requests 100m / 256Mi, limits 1000m / 1Gi.
+- probes: `/health/startup`, `/health/ready`, `/health/live` on the http port.
 
 No environment variables and no Secret. Every setting this deployment needs is already the
 upstream default:
@@ -87,7 +106,11 @@ dashboard password. local-path does not reserve capacity, so 1Gi is a cap rather
 allocation. PVCs do not resize in place under ArgoCD prune/selfHeal — changing this later means
 recreating the volume.
 
-**Service `codex-lb`** — `ClusterIP`, ports 2455 and 1455, carrying the Tailscale operator
+Carries `argocd.argoproj.io/sync-options: Prune=false`. With `prune: true` on the Application, a
+future edit that dropped `pvc.yaml` from the repo would otherwise delete the volume and with it
+`encryption.key`, orphaning every pooled account irrecoverably.
+
+**Service `codex-lb`** — `ClusterIP`, **port 2455 only**, carrying the Tailscale operator
 annotations:
 
 ```yaml
@@ -99,8 +122,21 @@ annotations:
 This is the same mechanism `cluster/browserless/service.yaml` uses. The operator provisions a
 proxy pod joined to the tailnet; no node port and no public IP are involved.
 
-Port 1455 is included because the OAuth callback binds there. Without it, adding an account from
-a tailnet browser has no return path.
+Port 1455 is deliberately **excluded**. `tailscale.com/expose` publishes every port in the spec,
+so listing 1455 would make the OAuth callback permanently tailnet-reachable for no benefit.
+First-run account-add uses a port-forward to the Deployment, which does not require a Service
+port.
+
+`tailscale.com/funnel` must never appear on this Service. Funnel publishes to the public
+internet, and this dashboard controls every pooled ChatGPT account.
+
+**Tailnet ACL (follow-up, not in this repo).** Without a distinct tag, any tailnet device can
+reach the dashboard. Restricting it requires a tailnet policy edit first —
+`"tagOwners": {"tag:codex-lb": ["tag:k8s-operator"]}` plus a grant scoping `tag:codex-lb` to your
+own devices — and only then uncommenting `tailscale.com/tags: "tag:codex-lb"` in the Service.
+Annotating with a tag that has no `tagOwners` entry makes the operator's proxy fail to
+authenticate, so the order matters. Shipped commented out for that reason; no other service in
+this cluster uses tags today.
 
 **ArgoCD wiring** — `bootstrap/apps/codex-lb.yaml` in the app-of-apps, plus
 `cluster/codex-lb/argocd-application.yaml`, both matching the hermes shape: `project: default`,
@@ -122,17 +158,32 @@ API routes, external database — is all for scenarios this deployment does not 
 The dashboard grants full control over pooled ChatGPT accounts, so exposure is layered:
 
 1. **No public path.** Service is `ClusterIP`. No Ingress, no HTTPRoute, no cert-manager
-   certificate, no LoadBalancer, no NodePort. `cluster/ingress` is not touched by this work.
-2. **Tailnet-only reachability** via the operator annotation.
+   certificate, no LoadBalancer, no NodePort, no Funnel. `cluster/ingress` is not touched by this
+   work. Relevant because the cluster runs MetalLB, so a `LoadBalancer` type would take a real
+   address.
+2. **Tailnet-only reachability** via the operator annotation, 2455 only.
 3. **Dashboard auth** in `standard` mode — password plus TOTP. TOTP is enabled during first-run
    setup, not left for later.
 4. **API key auth** enabled for proxy routes. codex-lb rejects non-local proxy requests until
    this is configured, so tailnet clients require it regardless. Each client gets its own
    `sk-clb-...` key so keys can be revoked individually.
-5. **Optional tailnet ACL** restricting `codex-lb:2455` to specific devices, as defense in depth
-   over the annotation.
+5. **Workload hardening** — non-root, all capabilities dropped, read-only root filesystem, no
+   privilege escalation, seccomp `RuntimeDefault`, no ServiceAccount token.
+6. **Digest-pinned image**, so a re-pushed `1.22.0` tag cannot silently change what runs.
+7. **Tailnet ACL** restricting `codex-lb:2455` to specific devices — see the Service section;
+   requires a tailnet policy edit before it can be enabled.
+
+**Bootstrap token exposure.** With no password set, codex-lb generates a one-time bootstrap token
+and prints it to the pod log, where anyone with `kubectl logs` can read it and claim the
+dashboard. The token stays valid until a password exists. Setting the password is therefore the
+first action in the first port-forward session, not a later step.
+
+**Accepted risk: no NetworkPolicy.** Any pod in the cluster can reach 2455. The controls that
+actually matter here are API-key auth on proxy routes and the dashboard password. Worth adding a
+policy if network policies are adopted cluster-wide.
 
 Secrets never enter the repo. The repo is public; no token, password, or API key is committed.
+The Deployment carries no Secret at all.
 
 ## First-run setup
 
@@ -141,10 +192,11 @@ flow from a browser pointed at `codex-lb.tail94c55.ts.net:2455` sends the redire
 *browser machine's* localhost, where nothing is listening.
 
 First run therefore happens over a port-forward, which also makes the connection local and so
-bypasses the bootstrap token entirely:
+bypasses the bootstrap token entirely. It targets the **Deployment**, not the Service, because
+1455 is deliberately absent from the Service:
 
 ```bash
-kubectl port-forward -n codex-lb svc/codex-lb 2455:2455 1455:1455
+kubectl port-forward -n codex-lb deploy/codex-lb 2455:2455 1455:1455
 ```
 
 Then, at `http://localhost:2455`:
@@ -193,7 +245,9 @@ Work is complete only when all of the following have been observed:
 
 1. `kubectl get pods -n codex-lb` shows the pod `Running` and `1/1` ready.
 2. `kubectl get application codex-lb -n argocd` reports `Synced` and `Healthy`.
-3. `kubectl get svc -n codex-lb` shows `ClusterIP` — not LoadBalancer, not NodePort.
+3. `kubectl get svc -n codex-lb` shows `ClusterIP` — not LoadBalancer, not NodePort — and
+   exposes 2455 only.
+   `grep -ri funnel cluster/codex-lb` returns nothing.
 4. The Tailscale operator proxy pod exists and `codex-lb` appears in the tailnet device list.
 5. From a *second* tailnet device, `GET http://codex-lb.tail94c55.ts.net:2455/v1/models` with a
    valid `sk-clb-...` bearer token returns the model catalog.
