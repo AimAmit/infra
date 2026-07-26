@@ -80,12 +80,32 @@ Hardened to match upstream's own chart defaults, which are known to work with th
 - resources: requests 100m / 256Mi, limits 1000m / 1Gi.
 - probes: `/health/startup`, `/health/ready`, `/health/live` on the http port.
 
-No environment variables and no Secret. Every setting this deployment needs is already the
-upstream default:
+One environment variable and no Secret.
+
+`CODEX_LB_DATA_DIR=/var/lib/codex-lb` is **required** — the `/var/lib/codex-lb` default is
+Docker-specific, not container-generic. `app/core/config/settings.py` resolves it through:
+
+```python
+def _in_container() -> bool:
+    return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
+```
+
+containerd creates neither file, so under Kubernetes the data dir falls back to
+`Path.home()/".codex-lb"` — `/home/app/.codex-lb` — and the PVC is never written. With
+`readOnlyRootFilesystem: true` this fails loudly at startup; without it, the pod would start
+normally, write SQLite to the container's ephemeral layer, and lose every account on restart with
+an empty PVC mounted alongside.
+
+The same `_in_container()` check governs `oauth_callback_host`, which therefore binds `127.0.0.1`
+rather than `0.0.0.0`. That is left alone: `kubectl port-forward` operates inside the pod's
+network namespace and reaches loopback-bound listeners, and keeping 1455 off the pod IP is one
+less thing exposed to the cluster network.
+
+Everything else is an upstream default or a runtime dashboard setting:
 
 | Considered | Decision | Reason |
 | --- | --- | --- |
-| `CODEX_LB_ENCRYPTION_KEY_FILE` | omit | default location is the data dir, which is the PVC |
+| `CODEX_LB_ENCRYPTION_KEY_FILE` | omit | default location is the data dir, now pinned to the PVC |
 | `CODEX_LB_DASHBOARD_AUTH_MODE` | omit | `standard` is the default |
 | `CODEX_LB_LEADER_ELECTION_ENABLED` | omit | default `true`; a single replica elects itself |
 | `CODEX_LB_DASHBOARD_BOOTSTRAP_TOKEN` | omit | first run happens over port-forward, which is localhost and bypasses bootstrap |

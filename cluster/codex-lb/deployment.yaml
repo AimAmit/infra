@@ -46,9 +46,16 @@ spec:
               # reach it with a port-forward to this Deployment instead.
               containerPort: 1455
               protocol: TCP
-          # No env vars: every value needed here is already the upstream
-          # default, including the SQLite path and encryption key location
-          # inside the data dir. Everything else is set in the dashboard.
+          env:
+            # Required. The /var/lib/codex-lb default is Docker-only:
+            # app/core/config/settings.py decides via _in_container(), which
+            # tests for /.dockerenv or /run/.containerenv. containerd creates
+            # neither, so the data dir would fall back to ~/.codex-lb
+            # (/home/app/.codex-lb) and the database would never reach this
+            # PVC. Everything else is an upstream default or a dashboard
+            # setting.
+            - name: CODEX_LB_DATA_DIR
+              value: /var/lib/codex-lb
           volumeMounts:
             - name: data
               mountPath: /var/lib/codex-lb
