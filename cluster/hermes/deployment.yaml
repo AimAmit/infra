@@ -44,7 +44,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: cf-aig-token
+              key: codex-lb-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
@@ -65,7 +65,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: cf-aig-token
+              key: codex-lb-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:

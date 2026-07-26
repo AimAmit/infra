@@ -7,8 +7,11 @@ data:
   config.yaml: |
     model:
       provider: openai-api
-      base_url: https://gateway.ai.cloudflare.com/v1/62bfe73a8df61fcc43c79c8be3a1747b/my-gateway/compat
-      model: google-ai-studio/gemini-3.6-flash
+      # codex-lb over in-cluster DNS, so this never leaves the cluster and
+      # never traverses the tailnet. Non-local from codex-lb's perspective,
+      # so it requires API Key Auth to be enabled there.
+      base_url: http://codex-lb.codex-lb.svc.cluster.local:2455/v1
+      model: gpt-5.6-terra
     telegram:
       enabled: true
       dmPolicy: pairing
