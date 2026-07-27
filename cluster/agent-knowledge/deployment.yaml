@@ -89,16 +89,24 @@ spec:
           command: ["sh", "-c"]
           args:
             - |
-              set -eu
+              set -u
+              # The PVC root is owned by uid 0 (kubelet creates it), this runs
+              # as 1000, and git refuses a repo whose directory it does not own
+              # - every command after `init` fails with exit 128. fsGroup makes
+              # the directory writable but does not change its owner.
+              git config --global --add safe.directory /obsidian/rw
               cd /obsidian/rw
-              if [ ! -d .git ]; then
-                git init -q -b main
-                git config user.email agent@cluster
-                git config user.name obsidian-history
-              fi
+              [ -d .git ] || git init -q -b main
+              git config user.email agent@cluster
+              git config user.name obsidian-history
               while true; do
-                git add -A >/dev/null 2>&1 || true
-                git commit -qm "agent writes $(date -u +%FT%TZ)" >/dev/null 2>&1 || true
+                # Errors are logged, not swallowed. A silent `|| true` here is
+                # how the ownership failure above went unnoticed until someone
+                # ran git log by hand.
+                if [ -n "$(git status --porcelain)" ]; then
+                  git add -A && git commit -qm "agent writes $(date -u +%FT%TZ)" \
+                    || echo "history commit failed"
+                fi
                 sleep 300
               done
           volumeMounts:
