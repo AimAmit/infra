@@ -18,6 +18,14 @@ def _iter_notes(obsidian_root: Path):
             rel = p.relative_to(obsidian_root)
             if any(part.startswith(".") for part in rel.parts):
                 continue
+            # Fail closed on symlinks. resolve() guards neighbors(), but search
+            # and backlinks walk the tree directly, so a hand-made link like
+            # rw/notes.md -> private/journal.md would pipe private content into
+            # results. A symlink inside a tier has no legitimate use here, so
+            # skip every one rather than resolving and comparing to the tier
+            # root - less logic, and nothing to get subtly wrong.
+            if p.is_symlink():
+                continue
             yield str(rel), p
 
 
