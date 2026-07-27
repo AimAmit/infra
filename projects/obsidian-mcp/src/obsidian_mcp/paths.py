@@ -1,5 +1,6 @@
 """Containment: every path argument passes through resolve() before any I/O."""
 from pathlib import Path
+from stat import S_ISREG
 
 TIERS = ("rw", "ro")
 
@@ -30,8 +31,26 @@ def resolve(obsidian_root: Path, ref: str) -> Path:
         raise PathViolation("dotfiles not allowed")
     if p.suffix != ".md":
         raise PathViolation("only .md files")
-    tier_root = (obsidian_root / parts[0]).resolve()
+    tier_dir = obsidian_root / parts[0]
+    # Must precede the .resolve() below: resolving a symlinked tier root yields
+    # its target, so the containment check would compare that target against
+    # itself and trivially pass. `rw -> ~/Documents` is a plausible setup, not
+    # just an attack, and it silently relocates the whole tier.
+    if tier_dir.is_symlink():
+        raise PathViolation("tier root must not be a symlink")
+    tier_root = tier_dir.resolve()
     full = (obsidian_root / p).resolve()  # follows symlinks -> catches escapes
     if not full.is_relative_to(tier_root):
         raise PathViolation("resolved path escapes tier root")
+    # A hardlink is a second real directory entry for one inode; is_symlink() is
+    # False and resolve() does not undo it, so every check above passes for a
+    # note hardlinked out of private/. Nothing distinguishes the links, so any
+    # multiply-linked note is refused. Absent files (the create path) have no
+    # stat and are unaffected.
+    try:
+        st = full.stat()
+    except OSError:
+        st = None
+    if st is not None and S_ISREG(st.st_mode) and st.st_nlink > 1:
+        raise PathViolation("hardlinked notes not allowed")
     return full

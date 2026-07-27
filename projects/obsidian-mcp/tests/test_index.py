@@ -1,5 +1,8 @@
+import os
+
 import pytest
-from obsidian_mcp.index import search, neighbors, backlinks
+from obsidian_mcp.index import search, neighbors, backlinks, _parse_frontmatter
+from obsidian_mcp.paths import PathViolation
 
 
 @pytest.fixture
@@ -94,3 +97,157 @@ def test_symlinked_directory_into_private_is_not_traversed(symlinked):
 def test_regular_notes_in_both_tiers_still_returned(symlinked):
     paths = {h["path"] for h in search(symlinked, "ordinary")}
     assert paths == {"rw/real.md", "ro/real.md"}
+
+
+# --- Fix round 1: remaining filesystem-aliasing axes ---------------------------
+# A tier is a containment boundary, and the filesystem offers four ways to put a
+# byte inside it that lives somewhere else: file symlink (covered above),
+# hardlink, symlinked tier root, and traversal (covered by paths.resolve).
+# These fixtures cover the two that were still open.
+
+
+def _canary_vault(tmp_path):
+    """Vault + an out-of-vault dir, both carrying canaries and a live wikilink."""
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "elsewhere.md").write_text("canary-outside [[People/Alice]]")
+    root = tmp_path / "vault"
+    (root / "private").mkdir(parents=True)
+    (root / "ro/People").mkdir(parents=True)
+    (root / "private/journal.md").write_text("canary-private [[People/Alice]]")
+    (root / "ro/People/Alice.md").write_text("# Alice")
+    return root, outside
+
+
+@pytest.fixture
+def hardlinked(tmp_path):
+    """C1: os.link() makes a second real directory entry - no symlink involved."""
+    root, outside = _canary_vault(tmp_path)
+    (root / "rw").mkdir()
+    (root / "rw/real.md").write_text("ordinary rw note")
+    os.link(root / "private/journal.md", root / "rw/hard.md")
+    os.link(outside / "elsewhere.md", root / "rw/hardout.md")
+    return root
+
+
+def test_hardlink_to_private_file_is_never_read(hardlinked):
+    assert search(hardlinked, "canary-private") == []
+    assert "rw/hard.md" not in backlinks(hardlinked, "ro/People/Alice.md")
+    with pytest.raises(PathViolation):
+        neighbors(hardlinked, "rw/hard.md")
+
+
+def test_hardlink_to_outside_file_is_never_read(hardlinked):
+    assert search(hardlinked, "canary-outside") == []
+    assert "rw/hardout.md" not in backlinks(hardlinked, "ro/People/Alice.md")
+    with pytest.raises(PathViolation):
+        neighbors(hardlinked, "rw/hardout.md")
+
+
+def test_hardlink_guard_does_not_over_fire(hardlinked):
+    # Ordinary single-link notes must still be indexed.
+    assert {h["path"] for h in search(hardlinked, "ordinary")} == {"rw/real.md"}
+
+
+@pytest.fixture
+def tier_symlink_private(tmp_path):
+    """C2: the tier root itself is the symlink, so every file under it is real."""
+    root, _ = _canary_vault(tmp_path)
+    (root / "rw").symlink_to(root / "private", target_is_directory=True)
+    return root
+
+
+@pytest.fixture
+def tier_symlink_outside(tmp_path):
+    """C2 variant: rw/ pointed at a directory entirely outside the vault."""
+    root, outside = _canary_vault(tmp_path)
+    (root / "rw").symlink_to(outside, target_is_directory=True)
+    return root
+
+
+def test_symlinked_tier_root_into_private_is_skipped(tier_symlink_private):
+    assert search(tier_symlink_private, "canary-private") == []
+    assert backlinks(tier_symlink_private, "ro/People/Alice.md") == []
+    with pytest.raises(PathViolation):
+        neighbors(tier_symlink_private, "rw/journal.md")
+
+
+def test_symlinked_tier_root_outside_vault_is_skipped(tier_symlink_outside):
+    assert search(tier_symlink_outside, "canary-outside") == []
+    assert backlinks(tier_symlink_outside, "ro/People/Alice.md") == []
+    with pytest.raises(PathViolation):
+        neighbors(tier_symlink_outside, "rw/elsewhere.md")
+
+
+def test_private_ref_rejected_by_neighbors_and_backlinks(vault):
+    # The central guarantee, exercised through the two resolve()-guarded entry
+    # points rather than only through search's tier walk.
+    for fn in (neighbors, backlinks):
+        with pytest.raises(PathViolation):
+            fn(vault, "private/secret.md")
+
+
+# --- Fix round 1: one bad file must not kill the scan (I3) --------------------
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores file permissions")
+def test_unreadable_file_does_not_kill_search(vault):
+    locked = vault / "rw/locked.md"
+    locked.write_text("infra locked")
+    locked.chmod(0o000)
+    try:
+        paths = {h["path"] for h in search(vault, "infra")}
+    finally:
+        locked.chmod(0o644)
+    assert "rw/Daily/2026-07-26.md" in paths
+    assert "rw/locked.md" not in paths
+
+
+def test_directory_named_like_a_note_does_not_kill_search(vault):
+    (vault / "rw/notes.md").mkdir()
+    paths = {h["path"] for h in search(vault, "infra")}
+    assert "rw/Daily/2026-07-26.md" in paths
+    assert "rw/notes.md" not in paths
+
+
+def test_unreadable_file_does_not_kill_backlinks(vault):
+    (vault / "rw/notes.md").mkdir()
+    assert backlinks(vault, "ro/People/Alice.md") == ["rw/Daily/2026-07-26.md"]
+
+
+# --- Fix round 1: frontmatter shapes Obsidian actually writes (I4) ------------
+
+
+def test_frontmatter_block_style_list(vault):
+    p = vault / "rw/block.md"
+    p.write_text("---\ntags:\n  - daily\n  - work\n---\nbody")
+    assert neighbors(vault, "rw/block.md")["frontmatter"]["tags"] == ["daily", "work"]
+
+
+def test_frontmatter_no_trailing_newline_after_close(vault):
+    p = vault / "rw/tight.md"
+    p.write_text("---\ntags: [daily]\n---")
+    assert neighbors(vault, "rw/tight.md")["frontmatter"]["tags"] == ["daily"]
+
+
+def test_frontmatter_leading_bom(vault):
+    p = vault / "rw/bom.md"
+    p.write_text("﻿---\ntags: [daily]\n---\nbody")
+    assert neighbors(vault, "rw/bom.md")["frontmatter"]["tags"] == ["daily"]
+
+
+def test_frontmatter_crlf():
+    # Reachable only for direct callers: Path.read_text() applies universal
+    # newlines, so neighbors() never sees a \r. Pinned so the parser stays
+    # robust if a future caller reads bytes or disables translation.
+    fm = _parse_frontmatter("---\r\ntags: [daily]\r\n---\r\nbody")
+    assert fm["tags"] == ["daily"]
+
+
+def test_frontmatter_scalars_and_inline_list_still_work(vault):
+    p = vault / "rw/mixed.md"
+    p.write_text("---\ntitle: Standup\ntags: [a, b]\nempty:\n---\nbody")
+    fm = neighbors(vault, "rw/mixed.md")["frontmatter"]
+    assert fm["title"] == "Standup"
+    assert fm["tags"] == ["a", "b"]
+    assert fm["empty"] == ""
