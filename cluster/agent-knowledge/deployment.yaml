@@ -28,9 +28,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: obsidian-mcp
-          # TODO(task-7): replace with the digest from the first push. The
-          # 0.1.0 tag is mutable on ghcr, and this container reads every note.
-          image: ghcr.io/aimamit/obsidian-mcp:0.1.0
+          # Digest-pinned: the 0.1.0 tag is mutable on ghcr, and this container
+          # reads every note. Built for linux/arm64 - the only node is arm64.
+          image: ghcr.io/aimamit/obsidian-mcp:0.1.0@sha256:13fa5a4acebf22edd37a31c36409b16b350727091f9421c475b93f8b4f196efa
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

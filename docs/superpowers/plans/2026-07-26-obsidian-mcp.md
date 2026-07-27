@@ -830,11 +830,11 @@ EXPOSE 8080
 CMD ["obsidian-mcp-serve"]
 ```
 
-- [ ] **Step 2: Build and push** (multi-step, needs a one-time `docker login ghcr.io` by the user with a PAT that has `write:packages`):
+- [x] **Step 2: Build and push** (multi-step, needs a one-time `docker login ghcr.io` by the user with a PAT that has `write:packages`):
 
 ```bash
 cd projects/obsidian-mcp
-docker build --platform linux/amd64 -t ghcr.io/aimamit/obsidian-mcp:0.1.0 .
+docker buildx build --platform linux/arm64 -t ghcr.io/aimamit/obsidian-mcp:0.1.0 --push .  # node is arm64
 docker run --rm -e OBSIDIAN_ROOT=/tmp -e OBSIDIAN_MCP_TOKEN=t -p 18080:8080 -d ghcr.io/aimamit/obsidian-mcp:0.1.0
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18080/mcp   # expect 401
 docker push ghcr.io/aimamit/obsidian-mcp:0.1.0
