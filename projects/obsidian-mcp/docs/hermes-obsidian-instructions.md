@@ -10,8 +10,8 @@ not by a person.
 
 Do not use `write_file`, `read_file`, shell redirection, or the SSH terminal to
 touch notes. There is no vault directory on the Mac you can reach and no vault
-directory inside the gateway. `/Users/tnluser/Documents/Agent Operations Vault`
-does not exist — if that path is anywhere in memory, delete it.
+directory inside the gateway. Never suggest a local filesystem path for the
+vault — no such path exists.
 
 The vault lives on a volume in the cluster and is served by `obsidian-mcp`. It
 stays reachable when the Mac is asleep. Notes written through the tools appear
