@@ -50,6 +50,11 @@ spec:
             secretKeyRef:
               name: hermes-secrets
               key: telegram-token
+        - name: OBSIDIAN_MCP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: obsidian-mcp-token
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data
@@ -71,6 +76,11 @@ spec:
             secretKeyRef:
               name: hermes-secrets
               key: telegram-token
+        - name: OBSIDIAN_MCP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hermes-secrets
+              key: obsidian-mcp-token
         volumeMounts:
         - name: data-volume
           mountPath: /opt/data

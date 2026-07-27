@@ -924,9 +924,9 @@ kubectl -n agent-knowledge cp "$V/ro" "$(kubectl -n agent-knowledge get pod -l a
 **Files:**
 - Create: `cluster/agent-knowledge/syncthing.yaml`, `cluster/agent-knowledge/syncthing-service.yaml`; add to kustomization.
 
-- [ ] **Step 1: syncthing.yaml** — Deployment, 1 replica, Recreate, image `syncthing/syncthing:1.29.7` (digest-pin after first pull), hardening block as usual (syncthing image runs fine non-root with fsGroup; `STHOME=/var/syncthing/config`). Env: `STNODEFAULTFOLDER=true`, `STGUIADDRESS=127.0.0.1:8384` — **GUI loopback-only; reach it with port-forward, never a Service** (codex-lb 1455 reasoning). Mounts: PVC subPaths `rw`→`/var/syncthing/obsidian/rw`, `ro`→`/var/syncthing/obsidian/ro`; config on its own 1Gi PVC `syncthing-config` (also Prune=false — it holds the device key).
+- [x] **Step 1: syncthing.yaml** — Deployment, 1 replica, Recreate, image `syncthing/syncthing:1.29.7` (digest-pin after first pull), hardening block as usual (syncthing image runs fine non-root with fsGroup; `STHOME=/var/syncthing/config`). Env: `STNODEFAULTFOLDER=true`, `STGUIADDRESS=127.0.0.1:8384` — **GUI loopback-only; reach it with port-forward, never a Service** (codex-lb 1455 reasoning). Mounts: PVC subPaths `rw`→`/var/syncthing/obsidian/rw`, `ro`→`/var/syncthing/obsidian/ro`; config on its own 1Gi PVC `syncthing-config` (also Prune=false — it holds the device key).
 
-- [ ] **Step 2: syncthing-service.yaml** — port 22000 TCP only, annotations `tailscale.com/expose: "true"`, `tailscale.com/hostname: "obsidian-sync"`.
+- [x] **Step 2: syncthing-service.yaml** — port 22000 TCP only, annotations `tailscale.com/expose: "true"`, `tailscale.com/hostname: "obsidian-sync"`.
 
 - [ ] **Step 3: Commit, push, sync.** Pod Running; `obsidian-sync` appears in tailnet.
 
@@ -963,7 +963,7 @@ kubectl -n agent-knowledge exec deploy/syncthing -- syncthing cli show system | 
 - Modify: `cluster/hermes/configmap.yaml` (add `mcp_servers` block)
 - Modify: `cluster/hermes/deployment.yaml` (env `OBSIDIAN_MCP_TOKEN` from `hermes-secrets/obsidian-mcp-token`, both containers)
 
-- [ ] **Step 1: configmap** — append:
+- [x] **Step 1: configmap** — append:
 
 ```yaml
     mcp_servers:
@@ -974,7 +974,7 @@ kubectl -n agent-knowledge exec deploy/syncthing -- syncthing cli show system | 
           Authorization: "Bearer ${OBSIDIAN_MCP_TOKEN}"
 ```
 
-- [ ] **Step 2: deployment env** — same `secretKeyRef` pattern as `OPENAI_API_KEY`, key `obsidian-mcp-token` (created in Task 8 Step 4).
+- [x] **Step 2: deployment env** — same `secretKeyRef` pattern as `OPENAI_API_KEY`, key `obsidian-mcp-token` (created in Task 8 Step 4).
 
 - [ ] **Step 3: Commit, push, rollout; verify** — `kubectl -n hermes exec deploy/hermes-agent -c hermes -- hermes mcp test obsidian` → connection OK, 8 tools listed. From Telegram: "search the vault for sync-test" and "capture a note titled hello" → file appears in Obsidian.
 

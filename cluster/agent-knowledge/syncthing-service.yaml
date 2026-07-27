@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: obsidian-sync
+  namespace: agent-knowledge
+  labels:
+    app: syncthing
+  annotations:
+    # Published to the tailnet so the Mac can dial in: the Mac initiates every
+    # connection, and a laptop that roams has no stable address for the cluster
+    # to dial back.
+    #
+    # NEVER add tailscale.com/funnel here. Funnel would put the sync protocol
+    # on the public internet, where the only barrier left is device-ID pairing.
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "obsidian-sync"
+spec:
+  type: ClusterIP
+  selector:
+    app: syncthing
+  ports:
+    # 22000/TCP only. The GUI on 8384 is deliberately absent - it can add
+    # folders and devices, which is arbitrary read/write of the whole vault.
+    # Reach it with `kubectl port-forward` instead. Same reasoning that keeps
+    # codex-lb's 1455 off its Service.
+    #
+    # 21027/UDP (local discovery) is also absent: discovery is disabled on both
+    # sides and the two devices address each other by tailnet name only.
+    - name: sync
+      port: 22000
+      targetPort: sync
+      protocol: TCP

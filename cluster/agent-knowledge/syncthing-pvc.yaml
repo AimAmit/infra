@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: syncthing-config
+  namespace: agent-knowledge
+  annotations:
+    # Holds this device's Syncthing identity key. Losing it does not lose data,
+    # but it invalidates the pairing: the Mac would refuse the new device ID and
+    # both sides would have to be re-paired by hand through the GUIs.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

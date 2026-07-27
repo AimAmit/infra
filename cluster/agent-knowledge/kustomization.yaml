@@ -5,3 +5,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
+  # obsidian-data is ReadWriteOnce and mounted by both Deployments. That works
+  # because RWO is a per-node constraint and this cluster has one node - it
+  # would break the moment a second node exists and the scheduler split them.
+  - syncthing-pvc.yaml
+  - syncthing.yaml
+  - syncthing-service.yaml

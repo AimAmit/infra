@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syncthing
+  namespace: agent-knowledge
+spec:
+  replicas: 1
+  strategy:
+    # Two ReadWriteOnce volumes: the old pod must release both mounts before
+    # the new one can claim them.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: syncthing
+  template:
+    metadata:
+      labels:
+        app: syncthing
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: syncthing
+          # Digest-pinned to the arm64 image; the tag is mutable on Docker Hub.
+          image: syncthing/syncthing:1.29.7@sha256:ce219553fce405a08acc5b008d82a8e515b6aa7867cb322e243740ee94133b8a
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: STHOMEDIR
+              value: /var/syncthing/config
+            # Loopback-only GUI. The GUI can add folders and devices, which is
+            # arbitrary read/write of the vault, so it is bound where only a
+            # port-forward can reach it and published on no Service.
+            - name: STGUIADDRESS
+              value: 127.0.0.1:8384
+            # No "Default Folder" in ~/Sync on first start. The only folders
+            # that should ever exist here are obsidian-rw and obsidian-ro.
+            - name: STNODEFAULTFOLDER
+              value: "true"
+          ports:
+            - name: sync
+              containerPort: 22000
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /var/syncthing/config
+            # Read-write, unlike the MCP server's mount. Syncthing is the
+            # process that applies incoming changes, and the cluster ro/ folder
+            # is Receive Only at the Syncthing layer - the tier is enforced by
+            # share direction here, and by the readOnly mount over in the
+            # obsidian-mcp pod. Different layers, same boundary.
+            - name: obsidian
+              subPath: rw
+              mountPath: /var/syncthing/obsidian/rw
+            - name: obsidian
+              subPath: ro
+              mountPath: /var/syncthing/obsidian/ro
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: syncthing-config
+        - name: obsidian
+          persistentVolumeClaim:
+            claimName: obsidian-data
+        - name: tmp
+          emptyDir: {}

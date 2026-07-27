@@ -24,3 +24,12 @@ data:
       ssh_key: /opt/hermes/ssh/id_ed25519
     browser:
       cdp_url: ws://browserless.browserless.svc.cluster.local:3000/
+    mcp_servers:
+      # The vault. Cluster-internal DNS only - no tailnet name, no ingress - so
+      # this stays reachable with the Mac asleep, which was the whole point.
+      # The service admits the hermes namespace and nothing else.
+      obsidian:
+        transport: http
+        url: http://obsidian-mcp.agent-knowledge.svc.cluster.local:8080/mcp
+        headers:
+          Authorization: "Bearer ${OBSIDIAN_MCP_TOKEN}"
