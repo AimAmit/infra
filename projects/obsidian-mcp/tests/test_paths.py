@@ -44,3 +44,20 @@ def test_symlink_escape_rejected(vault):
     os.symlink(vault / "private", vault / "rw/leak")
     with pytest.raises(PathViolation):
         resolve(vault, "rw/leak/secret.md")
+
+
+# --- fix round 1 ---
+
+def test_valid_ro_path(vault):
+    p = resolve(vault, "ro/Refs/paper.md")
+    assert p == (vault / "ro/Refs/paper.md").resolve()
+
+@pytest.mark.parametrize("ref", [Path("rw/a.md"), None, b"rw/a.md", 42])
+def test_non_str_ref_rejected(vault, ref):
+    with pytest.raises(PathViolation):
+        resolve(vault, ref)
+
+@pytest.mark.parametrize("ref", ["rw/x.md/", "rw//x.md", "rw/ /x.md", "rw/\t/x.md"])
+def test_empty_or_whitespace_segment_rejected(vault, ref):
+    with pytest.raises(PathViolation):
+        resolve(vault, ref)

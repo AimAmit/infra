@@ -9,6 +9,8 @@ class PathViolation(Exception):
 
 
 def resolve(obsidian_root: Path, ref: str) -> Path:
+    if not isinstance(ref, str):
+        raise PathViolation("path must be a string")
     if "\x00" in ref or "\\" in ref:
         raise PathViolation("forbidden characters in path")
     p = Path(ref)
@@ -17,6 +19,11 @@ def resolve(obsidian_root: Path, ref: str) -> Path:
     parts = p.parts
     if len(parts) < 2 or parts[0] not in TIERS:
         raise PathViolation(f"path must start with a tier: {TIERS}")
+    # Checked against the raw ref, not p.parts: pathlib silently drops trailing
+    # and doubled separators, so "rw/x.md/" and "rw//x.md" both yield the clean
+    # parts ('rw', 'x.md') and would escape a parts-based check.
+    if any(not seg.strip() for seg in ref.split("/")):
+        raise PathViolation("empty or whitespace-only path segment")
     if any(part == ".." for part in parts):
         raise PathViolation("path traversal not allowed")
     if any(part.startswith(".") for part in parts[1:]):
