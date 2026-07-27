@@ -1,0 +1,8 @@
+# Declared explicitly rather than relying on ArgoCD's CreateNamespace=true, so
+# the namespace exists as a reviewable object in this repo and can be created
+# before the first sync - the token secret has to land somewhere, and it is
+# minted out-of-band because this repo is public.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-knowledge
