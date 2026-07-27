@@ -1,6 +1,7 @@
 import sys
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 import pytest
@@ -59,26 +60,41 @@ def test_rate_limit_section_is_mutually_exclusive(tmp_path):
     # overshoots, and a concurrent popleft() can also empty the deque between
     # the `while stamps` truthiness test and the `stamps[0]` access.
     #
-    # The injected clock is read inside that sequence, so it doubles as a probe:
-    # it counts how many threads are inside at once and sleeps to hold the
-    # section open. Unguarded, threads pile into the section together and peak
-    # climbs well above 1; guarded, entry is serialised and peak stays at 1.
-    n_threads = 40
-    inside = 0
-    peak = 0
-    probe = threading.Lock()
+    # The probe is the shared state itself, so occupancy is sampled across the
+    # whole check-then-act rather than at one statement inside it:
+    #   __bool__ -- the sequence's FIRST read of _stamps, at `while self._stamps`
+    #   append   -- its final act
+    # A thread is "inside" between those two. Measuring anywhere narrower (e.g.
+    # at the clock read) proves only that one statement is serialised, and stays
+    # silent when the guard covers the clock but not evict-check-append.
+    n_threads = MAX_PER_HOUR  # exactly fills the window: every thread reaches
+    # the append, so every __bool__ has a matching decrement and no occupancy
+    # leaks via the raise path
 
-    def clock():
-        nonlocal inside, peak
-        with probe:
-            inside += 1
-            peak = max(peak, inside)
-        time.sleep(0.003)  # hold the critical section open
-        with probe:
-            inside -= 1
-        return 0.0  # frozen: nothing ever ages out of the window
+    class Probe(deque):
+        def __init__(self):
+            super().__init__()
+            self.inside = 0
+            self.peak = 0
+            self.tally = threading.Lock()
 
-    w = Writer(clock=clock)
+        def __bool__(self):  # entering: first read of the shared state
+            with self.tally:
+                self.inside += 1
+                self.peak = max(self.peak, self.inside)
+            time.sleep(0.003)  # hold the section open
+            return super().__len__() > 0
+
+        def append(self, stamp):  # leaving: the act
+            super().append(stamp)
+            with self.tally:
+                self.inside -= 1
+
+    probe = Probe()
+    # Frozen clock: `now - stamps[0] > 3600` is never true, so the eviction loop
+    # body never runs and __bool__ fires exactly once per create().
+    w = Writer(clock=lambda: 0.0)
+    w._stamps = probe
     admitted = []
     tally = threading.Lock()
     start = threading.Barrier(n_threads)
@@ -103,7 +119,10 @@ def test_rate_limit_section_is_mutually_exclusive(tmp_path):
     finally:
         sys.setswitchinterval(old_interval)
 
-    assert peak == 1, f"{peak} threads inside the rate-limit section at once"
+    assert probe.inside == 0, "unbalanced probe accounting invalidates peak"
+    assert probe.peak == 1, (
+        f"{probe.peak} threads inside the evict-check-append sequence at once"
+    )
     assert len(admitted) == MAX_PER_HOUR, (
         f"{len(admitted)} of {n_threads} writes admitted into a "
         f"{MAX_PER_HOUR}-write window"
