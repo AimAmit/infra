@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: obsidian-mcp
+  namespace: agent-knowledge
+  labels:
+    app: obsidian-mcp
+  # DELIBERATELY UNANNOTATED. Unlike codex-lb, this service is not published to
+  # the tailnet at all: it serves personal notes to one in-cluster consumer, so
+  # cluster-internal DNS is the whole surface it needs.
+  #
+  # NEVER add tailscale.com/expose here, and never tailscale.com/funnel. Expose
+  # would let every tailnet device reach the vault behind a single bearer
+  # token; funnel would put it on the public internet. Ingress is restricted
+  # further by networkpolicy.yaml, which only admits the hermes namespace.
+spec:
+  type: ClusterIP
+  selector:
+    app: obsidian-mcp
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

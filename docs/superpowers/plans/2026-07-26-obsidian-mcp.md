@@ -814,7 +814,7 @@ done
 - Create: `projects/obsidian-mcp/Dockerfile`
 - Create: `projects/obsidian-mcp/.dockerignore` (`.venv`, `tests`, `__pycache__`)
 
-- [ ] **Step 1: Write Dockerfile**
+- [x] **Step 1: Write Dockerfile**
 
 ```dockerfile
 FROM python:3.13-slim
@@ -842,7 +842,7 @@ docker push ghcr.io/aimamit/obsidian-mcp:0.1.0
 
 Record the pushed digest (`docker inspect --format='{{index .RepoDigests 0}}' ...`) for the manifest. **Make the ghcr package public** (or add an imagePullSecret — public is fine, no secrets in image).
 
-- [ ] **Step 3: Commit** — `git commit -am "feat(obsidian-mcp): container image"`
+- [x] **Step 3: Commit** — `git commit -am "feat(obsidian-mcp): container image"`
 
 ### Task 8: Kubernetes manifests — obsidian-mcp + PVC
 
@@ -853,9 +853,9 @@ Record the pushed digest (`docker inspect --format='{{index .RepoDigests 0}}' ..
 **Interfaces:**
 - Produces: Service `obsidian-mcp.agent-knowledge.svc.cluster.local:8080`; PVC `obsidian-data` mounted with subPaths `rw` (writable) and `ro` (readOnly) — plus a git-history sidecar committing `rw/` every 5 min.
 
-- [ ] **Step 1: pvc.yaml** — name `obsidian-data`, 5Gi, RWO, annotation `argocd.argoproj.io/sync-options: Prune=false` with the encryption-key-style comment explaining why (only always-on copy + git history; local-path reclaim is Delete).
+- [x] **Step 1: pvc.yaml** — name `obsidian-data`, 5Gi, RWO, annotation `argocd.argoproj.io/sync-options: Prune=false` with the encryption-key-style comment explaining why (only always-on copy + git history; local-path reclaim is Delete).
 
-- [ ] **Step 2: obsidian-mcp.yaml** — Deployment, 1 replica, `strategy: Recreate`, image **digest-pinned** from Task 7, hardening block copied from `cluster/codex-lb/deployment.yaml` (runAsNonRoot 1000, fsGroup 1000, seccomp RuntimeDefault, drop ALL, no SA token, readOnlyRootFilesystem + `/tmp` emptyDir). Env: `OBSIDIAN_ROOT=/obsidian`, `OBSIDIAN_MCP_TOKEN` from secret `obsidian-mcp-secrets` key `token`. VolumeMounts: PVC subPath `rw` → `/obsidian/rw`; PVC subPath `ro` → `/obsidian/ro` **`readOnly: true`**. Second container `git-history`, image `alpine/git:2.45.2`, same securityContext:
+- [x] **Step 2: obsidian-mcp.yaml** — Deployment, 1 replica, `strategy: Recreate`, image **digest-pinned** from Task 7, hardening block copied from `cluster/codex-lb/deployment.yaml` (runAsNonRoot 1000, fsGroup 1000, seccomp RuntimeDefault, drop ALL, no SA token, readOnlyRootFilesystem + `/tmp` emptyDir). Env: `OBSIDIAN_ROOT=/obsidian`, `OBSIDIAN_MCP_TOKEN` from secret `obsidian-mcp-secrets` key `token`. VolumeMounts: PVC subPath `rw` → `/obsidian/rw`; PVC subPath `ro` → `/obsidian/ro` **`readOnly: true`**. Second container `git-history`, image `alpine/git:2.45.2`, same securityContext:
 
 ```yaml
 command: ["sh", "-c"]
@@ -872,9 +872,9 @@ args:
 
 with PVC subPath `rw` mounted read-write at `/obsidian/rw`.
 
-- [ ] **Step 3: obsidian-mcp-service.yaml** — ClusterIP, port 8080 → 8080, **no tailscale annotations, ever** (comment it like the codex-lb funnel warning). kustomization lists pvc, obsidian-mcp, obsidian-mcp-service, networkpolicy.
+- [x] **Step 3: obsidian-mcp-service.yaml** — ClusterIP, port 8080 → 8080, **no tailscale annotations, ever** (comment it like the codex-lb funnel warning). kustomization lists pvc, obsidian-mcp, obsidian-mcp-service, networkpolicy.
 
-- [ ] **Step 3b: networkpolicy.yaml** — the bearer token must not be the only thing between a compromised pod and the notes. Ingress-only policy on `app=obsidian-mcp`, port 8080, from the `hermes` namespace alone:
+- [x] **Step 3b: networkpolicy.yaml** — the bearer token must not be the only thing between a compromised pod and the notes. Ingress-only policy on `app=obsidian-mcp`, port 8080, from the `hermes` namespace alone:
 
 ```yaml
 apiVersion: networking.k8s.io/v1

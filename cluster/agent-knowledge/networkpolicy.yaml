@@ -1,0 +1,31 @@
+# The bearer token must not be the only thing between a compromised pod and
+# the notes. codex-lb runs without a policy because it holds credentials that
+# are useless without its own auth; this holds personal notes in plaintext, so
+# the accepted-risk posture does not carry over.
+#
+# FIRST NETWORKPOLICY IN THIS CLUSTER. Verify the CNI enforces it before
+# trusting it - a CNI without policy support silently ignores this object, and
+# an unenforced policy looks identical to an enforced one in kubectl. From a
+# pod outside the hermes namespace the probe must TIME OUT; a 401 means the
+# policy is decorative and this file is a comment.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: obsidian-mcp-ingress
+  namespace: agent-knowledge
+spec:
+  podSelector:
+    matchLabels:
+      app: obsidian-mcp
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # kubernetes.io/metadata.name is set automatically by the API server on
+        # every namespace, so this needs no label of our own on hermes.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hermes
+      ports:
+        - protocol: TCP
+          port: 8080

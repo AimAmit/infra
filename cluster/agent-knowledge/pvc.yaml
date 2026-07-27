@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: obsidian-data
+  namespace: agent-knowledge
+  annotations:
+    # Holds the only always-on copy of the vault plus the git history of every
+    # agent write. Never let an ArgoCD prune delete this volume: local-path
+    # reclaims with Delete, so a prune destroys the data, and the Mac copy only
+    # comes back if Syncthing happened to be paired and awake at the time.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # One-shot decision: local-path does not support volume expansion. The
+      # vault is markdown, so 5Gi is years of notes and history.
+      storage: 5Gi

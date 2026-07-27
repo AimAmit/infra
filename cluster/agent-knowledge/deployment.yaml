@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obsidian-mcp
+  namespace: agent-knowledge
+spec:
+  replicas: 1
+  strategy:
+    # ReadWriteOnce volume: the old pod must release the mount before the new
+    # one can claim it.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: obsidian-mcp
+  template:
+    metadata:
+      labels:
+        app: obsidian-mcp
+    spec:
+      # Neither container talks to the API server.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: obsidian-mcp
+          # TODO(task-7): replace with the digest from the first push. The
+          # 0.1.0 tag is mutable on ghcr, and this container reads every note.
+          image: ghcr.io/aimamit/obsidian-mcp:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: OBSIDIAN_ROOT
+              value: /obsidian
+            - name: OBSIDIAN_MCP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-mcp-secrets
+                  key: token
+          volumeMounts:
+            - name: obsidian
+              subPath: rw
+              mountPath: /obsidian/rw
+            - name: obsidian
+              subPath: ro
+              mountPath: /obsidian/ro
+              # Third line of defence behind the Syncthing share direction and
+              # the application's own path rules, and the only one enforced by
+              # the kernel: even a bug that composes a write path inside ro/
+              # gets EROFS.
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+        # Every agent write becomes a reviewable, revertible commit. Lives in
+        # .stignore on the rw share, so the Mac never sees a .git directory and
+        # Obsidian never fights it.
+        - name: git-history
+          image: alpine/git:2.45.2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            # git writes to $HOME even for a repo-local config; without this it
+            # lands on the read-only root and every command fails.
+            - name: HOME
+              value: /tmp
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              cd /obsidian/rw
+              if [ ! -d .git ]; then
+                git init -q -b main
+                git config user.email agent@cluster
+                git config user.name obsidian-history
+              fi
+              while true; do
+                git add -A >/dev/null 2>&1 || true
+                git commit -qm "agent writes $(date -u +%FT%TZ)" >/dev/null 2>&1 || true
+                sleep 300
+              done
+          volumeMounts:
+            # Read-write on purpose: this container owns the repo. It is also
+            # the reason ro/ is not mounted here at all - the history sidecar
+            # has no business touching the read-only tier.
+            - name: obsidian
+              subPath: rw
+              mountPath: /obsidian/rw
+            # Its own scratch volume, not the server's: a shared /tmp would let
+            # either container drop files the other one reads.
+            - name: git-home
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: obsidian
+          persistentVolumeClaim:
+            claimName: obsidian-data
+        # Both required by readOnlyRootFilesystem; one per container so neither
+        # can plant files in the other's scratch space.
+        - name: tmp
+          emptyDir: {}
+        - name: git-home
+          emptyDir: {}
