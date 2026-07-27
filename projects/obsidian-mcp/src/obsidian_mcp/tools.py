@@ -1,7 +1,6 @@
 """The eight tools hermes sees. Every write target is composed here, never passed in."""
 import datetime
 import re
-import subprocess
 from pathlib import Path
 
 from . import index
@@ -70,11 +69,17 @@ class ObsidianTools:
             d = self.root / tier
             return sum(1 for _ in d.rglob("*.md")) if d.is_dir() else 0
 
+        # Read the ref's mtime instead of shelling out to `git log`. Same
+        # answer to "is the history sidecar still committing", without a
+        # subprocess or a git binary in the image that serves the notes. The
+        # sidecar owns the repo; this container only observes it.
         last_commit = None
-        if (self.root / "rw/.git").is_dir():
-            r = subprocess.run(
-                ["git", "-C", str(self.root / "rw"), "log", "-1", "--format=%cI"],
-                capture_output=True, text=True,
+        ref = self.root / "rw/.git/refs/heads/main"
+        try:
+            last_commit = (
+                datetime.datetime.fromtimestamp(ref.stat().st_mtime, datetime.UTC)
+                .isoformat()
             )
-            last_commit = r.stdout.strip() or None
+        except OSError:
+            pass
         return {"notes_rw": count("rw"), "notes_ro": count("ro"), "last_git_commit": last_commit}
