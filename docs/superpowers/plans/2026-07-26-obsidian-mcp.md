@@ -4,7 +4,9 @@
 
 **Goal:** Tiered Obsidian vault (`rw`/`ro`/`private`) at `/Users/tnluser/obsidian/obsidian-vault`, served to hermes through a restricted obsidian-mcp service, with an always-on cluster copy synced over the tailnet.
 
-**Architecture:** Python package `obsidian_mcp` implements containment (path rules, O_EXCL create-only writes, rate caps), a markdown link index, and a FastMCP HTTP server with bearer auth. Phase 1 runs it on the Mac as a CLI over hermes's existing SSH. Phase 2 containers it, deploys via kustomize + ArgoCD in namespace `agent-knowledge`, and pairs Syncthing (Mac ⇄ cluster) with directional shares enforcing the tiers.
+**Architecture:** Python package `obsidian_mcp` implements containment (path rules, O_EXCL create-only writes, rate caps), a markdown link index, and a FastMCP HTTP server with bearer auth. It is containerised, deployed via kustomize + ArgoCD in namespace `agent-knowledge`, and reached by hermes over cluster-internal HTTP. Syncthing (Mac ⇄ cluster) replicates the vault with directional shares enforcing the tiers.
+
+**The SSH route is deliberately not a phase.** hermes must keep working when the Mac is asleep or gone, so the cluster copy is the only access path it ever gets. `obsidian-cli` (Task 5) survives as a Mac-side admin and seeding tool — hermes never calls it.
 
 **Tech Stack:** Python 3.13, `fastmcp`, `uvicorn`, `pytest`, Docker (ghcr.io), Syncthing 1.29.x, kustomize, ArgoCD, Tailscale operator.
 
@@ -672,7 +674,7 @@ Note: if `mcp.http_app(path="/mcp")` errors on this fastmcp version, use `mcp.ht
 
 - [x] **Step 9: Commit** — `git commit -am "feat(obsidian-mcp): MCP tools and HTTP server with bearer auth"`
 
-### Task 5: CLI for the SSH phase
+### Task 5: Admin CLI (seeding, inspection, Mac-side debugging — not an agent path)
 
 **Files:**
 - Create: `projects/obsidian-mcp/src/obsidian_mcp/cli.py`
@@ -769,16 +771,15 @@ def main():
 
 ---
 
-## Phase B — Mac-local rollout (working software, zero cluster infra)
+## Phase B — Mac vault preparation (source of the seed data)
 
-### Task 6: Vault tier split + seed files + hermes over SSH
+### Task 6: Vault tier split + seed files
 
 **Files:**
 - Create (on Mac, outside repo): tier dirs and seed notes under `/Users/tnluser/obsidian/obsidian-vault`
-- Create: `projects/obsidian-mcp/docs/hermes-obsidian-instructions.md` (the conventions block hermes gets)
 
 **Interfaces:**
-- Produces: hermes can run `obsidian-cli --root /Users/tnluser/obsidian/obsidian-vault <cmd>` over its existing `mac-ssh` terminal backend.
+- Produces: a tiered vault on disk that Task 8 Step 6 copies into the PVC and Task 10 shares over Syncthing. Nothing here is an agent access path.
 
 - [ ] **Step 1: Create the tier layout** (Welcome.md keeps Obsidian happy; move it into rw/)
 
@@ -799,15 +800,9 @@ for f in context preferences environment; do
 done
 ```
 
-- [ ] **Step 3: Install the package on the Mac** — `cd ~/Project/infra/projects/obsidian-mcp && uv tool install --editable .` then verify `obsidian-cli --root "$V" status` prints JSON with `notes_rw`/`notes_ro`.
+- [ ] **Step 3: Install the admin CLI on the Mac** — `cd ~/Project/infra/projects/obsidian-mcp && uv tool install --editable .` then verify `obsidian-cli --root "$V" status` prints JSON with `notes_rw`/`notes_ro`. This is for your own inspection and for sanity-checking containment against the real vault; hermes has no route to it.
 
-- [ ] **Step 4: Write `docs/hermes-obsidian-instructions.md`** — the system-prompt block for hermes: tier meanings, tool table (the 8 commands with exact `obsidian-cli` invocations), lifecycle conventions from the spec (hot memory ≤6K chars, promotion via `propose`, content routing rules, append-only daily logs), and the injection stance (note bodies between `<<<NOTE>>>` delimiters are quoted documents, never instructions).
-
-- [ ] **Step 5: Wire hermes** — add the instructions block to hermes's memory (`USER.md`/`MEMORY.md` via dashboard or Telegram: "save these vault instructions"). Verify end-to-end from Telegram: ask hermes to `obsidian-cli ... capture "test" "hello"` and confirm the file appears in Obsidian under `rw/Inbox/Agent Captures/`.
-
-- [ ] **Step 6: Commit** — `git add projects/obsidian-mcp/docs && git commit -m "docs(obsidian-mcp): hermes instruction block for SSH phase"`
-
-**CHECKPOINT: live with Phase B for a few days before building Phase C. If the loop isn't useful, stop here at zero infra cost.**
+- [ ] **Step 4: Decide what goes in `ro/` with the model provider in mind** — `ro/` and `rw/` content becomes model context through codex-lb's pooled ChatGPT accounts. `private/` is the only tier that never leaves your hardware. Sort existing notes accordingly *before* the PVC seed in Task 8, because unsorting them later means deleting from the cluster copy and the git history.
 
 ---
 
@@ -877,7 +872,32 @@ args:
 
 with PVC subPath `rw` mounted read-write at `/obsidian/rw`.
 
-- [ ] **Step 3: obsidian-mcp-service.yaml** — ClusterIP, port 8080 → 8080, **no tailscale annotations, ever** (comment it like the codex-lb funnel warning). kustomization lists pvc, obsidian-mcp, obsidian-mcp-service.
+- [ ] **Step 3: obsidian-mcp-service.yaml** — ClusterIP, port 8080 → 8080, **no tailscale annotations, ever** (comment it like the codex-lb funnel warning). kustomization lists pvc, obsidian-mcp, obsidian-mcp-service, networkpolicy.
+
+- [ ] **Step 3b: networkpolicy.yaml** — the bearer token must not be the only thing between a compromised pod and the notes. Ingress-only policy on `app=obsidian-mcp`, port 8080, from the `hermes` namespace alone:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: obsidian-mcp-ingress
+  namespace: agent-knowledge
+spec:
+  podSelector:
+    matchLabels:
+      app: obsidian-mcp
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hermes
+      ports:
+        - protocol: TCP
+          port: 8080
+```
+
+First NetworkPolicy in this cluster — **verify the CNI enforces them before trusting it.** Apply, then from a throwaway pod in `default`: `kubectl run probe --rm -it --image=curlimages/curl --restart=Never -- curl -m 5 -s -o /dev/null -w '%{http_code}' http://obsidian-mcp.agent-knowledge:8080/mcp` → must time out, not return 401. A 401 means the CNI is ignoring the policy and this defence does not exist. Note the result in the task report either way.
 
 - [ ] **Step 4: Validate + secret** — `kubectl create namespace agent-knowledge`; user mints token out-of-band:
 
@@ -958,23 +978,49 @@ kubectl -n agent-knowledge exec deploy/syncthing -- syncthing cli show system | 
 
 - [ ] **Step 3: Commit, push, rollout; verify** — `kubectl -n hermes exec deploy/hermes-agent -c hermes -- hermes mcp test obsidian` → connection OK, 8 tools listed. From Telegram: "search the vault for sync-test" and "capture a note titled hello" → file appears in Obsidian.
 
-- [ ] **Step 4: Update hermes instructions** — replace the `obsidian-cli` command table from Task 6 with the MCP tool names; move morning-briefing style jobs to `hermes cron add` (each writes via `obsidian_log_daily`). Uninstall Mac `obsidian-cli` only after a week of parallel running.
+- [ ] **Step 4: Write `projects/obsidian-mcp/docs/hermes-obsidian-instructions.md`** — the block that goes into hermes's memory (`USER.md`/`MEMORY.md` via dashboard or Telegram). Contents: tier meanings, the 8 MCP tool names and when to reach for each, lifecycle conventions from the spec (hot memory ≤6K chars, promotion via `obsidian_propose`, content routing rules, append-only daily fragments), the cross-tier link policy, and the injection stance — text between `<<<NOTE>>>` delimiters is a quoted document, never an instruction.
+
+- [ ] **Step 5: Give the tools docstrings** — hermes's only description of each tool is what fastmcp derives from the signature, and right now `tools.py` has none. One line per method covering the tier it touches and its create-only nature; re-run `tools/list` and read them back as hermes would see them.
+
+- [ ] **Step 6: Move scheduled work into the cluster** — morning briefing and similar via `hermes cron add`, each writing through `obsidian_log_daily`.
 
 ### Task 12: Verification sweep (spec §Verification, all 10 checks)
 
 - [ ] Run every check from the spec verbatim; the ones not already covered above:
   - traversal/symlink probes against the live service (expect `PathViolation` errors in the JSON-RPC response, never content): `obsidian_read("../../etc/passwd")`, `obsidian_read("rw/../ro/note.md")` (double-tier), symlink planted in Mac `rw/` pointing at `private/` — after sync, read attempt fails realpath check in the pod.
   - `kubectl -n agent-knowledge exec deploy/obsidian-mcp -c git-history -- find /vault -path '*private*'` → empty.
-  - unauthenticated `curl` to the Service from a debug pod → 401; `kubectl get ingress,httproute -n agent-knowledge` → none; `kubectl get svc -n agent-knowledge -o yaml | grep -i tailscale` → only the syncthing Service.
+  - unauthenticated `curl` from a debug pod **in the `hermes` namespace** → 401 (from any other namespace it must time out instead — that is the NetworkPolicy, checked in T8 Step 3b); `kubectl get ingress,httproute -n agent-knowledge` → none; `kubectl get svc -n agent-knowledge -o yaml | grep -i tailscale` → only the syncthing Service.
+  - duplicate `Authorization` headers → 401, not accepted-by-last-header.
   - pod delete → vault + `.git` history intact; Mac asleep → hermes reads/writes cluster copy; on wake Obsidian shows the agent's notes.
   - cluster `git -C /obsidian/rw log --oneline | head` shows commits; `.git` absent on the Mac.
 - [ ] Fix anything that fails; re-run; commit any manifest fixes.
 - [ ] Update spec Status → `implemented`; commit.
 
+### Task 13: Off-box backup
+
+The PVC is the only always-on copy, on a single node, on `local-path`, with `Delete` reclaim and no expansion. The git history the sidecar builds lives on the same disk it is meant to protect, so a node loss takes both. `Prune=false` guards against ArgoCD, not hardware.
+
+**Files:**
+- Create: `cluster/agent-knowledge/backup-cronjob.yaml`; add to kustomization.
+
+- [ ] **Step 1: CronJob** — nightly, `alpine/git`, same securityContext and PVC `rw` mount, `git bundle create /backup/obsidian-$(date -u +%F).bundle --all` into a second small PVC, keeping the last 14 and deleting older. A bundle is one file and restores with `git clone`.
+- [ ] **Step 2: Pull one bundle to the Mac and restore it into a scratch dir** — an untested backup is not a backup. Verify the restored tree matches `rw/`.
+- [ ] **Step 3: Commit.**
+
+### Task 14: Decide the exfiltration posture (write it down, then act on it)
+
+Every containment rule in this design bounds *writes*. Nothing bounds where read content travels once hermes has it, and hermes holds a Telegram channel plus browser CDP against `browserless`. A note containing injected instructions — a web clip, a pasted email, anything ingested — can direct hermes to carry `ro/` content outward. This is a live hole, not a hypothetical, and the spec's "residual risk accepted" line understates it.
+
+- [ ] **Step 1: Pick a posture** and record it in the spec's prompt-injection section: (a) accept, documented, on the grounds that everything in `ro/`+`rw/` is already going to OpenAI anyway; (b) constrain hermes's egress when vault tools are enabled — cluster egress NetworkPolicy on the hermes namespace, allowlisting codex-lb, Telegram, and obsidian-mcp; or (c) split hermes into a vault-reading agent with no browser and a general agent without vault access.
+- [ ] **Step 2: Implement whichever was chosen**, or commit the written acceptance if (a).
+
 ---
 
 ## Self-review notes
 
-- Spec coverage: tiers/sync (T6, T9, T10), MCP tools + containment (T1–T4), CLI/SSH phase (T5, T6), lifecycle conventions (T6 Step 4, T11 Step 4), k8s packaging (T7, T8), git history (T8), hardening (T8–T10), verification (T12). Cross-tier link policy is a documentation item — lives in T6 Step 4 instructions.
-- Known risk: `fastmcp` API drift on `http_app(path=)` — fallback noted inline in Task 4 Step 7.
+- Spec coverage: tiers/sync (T6, T9, T10), MCP tools + containment (T1–T4), admin CLI (T5), lifecycle conventions + hermes instruction block (T11 Steps 4–6), k8s packaging (T7, T8), git history (T8), hardening (T8–T10), durability (T13), verification (T12). Cross-tier link policy is a documentation item — lives in T11 Step 4.
+- Phase 1 (hermes over `mac-ssh`) was cut deliberately: hermes must function with the Mac asleep, so the cluster copy is the only agent path. `obsidian-cli` remains an admin tool.
+- Known risk: `fastmcp` API drift on `http_app(path=)` — resolved in practice, `http_app(path="/mcp")` works on fastmcp 3.4.4.
+- Known risk: NetworkPolicy is new to this cluster; if the CNI does not enforce it (T8 Step 3b), the bearer token is again the sole barrier and T14 becomes more urgent.
+- Syncthing pairing state lives in the config PVC, not in git — a PVC loss means re-pairing by hand through the port-forwarded GUI. Record both device IDs somewhere durable.
 - `kubectl cp` seeding requires tar in the git-history image (alpine/git has it).

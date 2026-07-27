@@ -187,6 +187,29 @@ Telegram pastes, headlines) can carry instructions. Mitigations, in order of val
 Residual risk accepted: injected content can still bias what hermes *says* and what it writes
 into new captures. That is inherent to letting an agent read ingested text.
 
+### The unclosed hole: read-out, not write-in
+
+Every rule above bounds what an injected instruction can *write*. None of them bound where note
+content goes once hermes is holding it, and hermes has two egress channels — Telegram and browser
+CDP against `browserless`. An injected instruction inside any note hermes reads can direct it to
+carry `ro/` content outward. Delimiters are a hint to the model, not a control.
+
+This is the weakest point in the design and it is not fixed by anything in this spec. Three ways
+out, one of which must be chosen and recorded rather than left implicit:
+
+1. **Accept it**, on the grounds that `ro/` and `rw/` content already reaches OpenAI as model
+   context (below) — so the marginal loss from an exfil channel is bounded by what you already
+   decided to share. `private/` remains untouched either way.
+2. **Constrain egress**: NetworkPolicy on the hermes namespace allowlisting codex-lb, Telegram,
+   and obsidian-mcp; drop the browser when vault tools are live.
+3. **Split the agent**: a vault-reading hermes with no browser, a general hermes with no vault.
+
+### What the tiers actually mean
+
+`private/` is "never leaves my hardware". `ro/` and `rw/` are **not** "stays on my infra" — that
+content becomes model context through codex-lb's pooled ChatGPT accounts on every turn that
+touches it. Route notes on that basis, not on sensitivity alone.
+
 ## Lifecycle conventions (the community pattern, adopted)
 
 These are hermes-side conventions (system prompt + `MEMORY.md`), not infrastructure:
@@ -228,12 +251,18 @@ created out-of-band with kubectl; repo is public, nothing sensitive committed.
 
 ## Rollout order
 
-1. **Mac-local first, zero infra**: create the `rw/ro/private` folder split in the vault; point
-   hermes at the six operations via its existing SSH path (thin wrapper script with the same
-   containment rules). Proves the interaction loop is worth having before any cluster work.
-2. Vault-mcp image + manifests; deploy with PVC seeded by one-shot copy.
+**There is no SSH phase.** An earlier draft had hermes reach the vault through its `mac-ssh`
+terminal backend first, to prove the loop before building infra. That is cut: hermes must keep
+working with the Mac asleep or gone, and an access path that dies with the laptop is the thing
+this design exists to avoid. The cluster copy is the only route hermes ever gets. The `obsidian-cli`
+built alongside the server stays as a Mac-side admin and seeding tool.
+
+1. Vault tier split on the Mac — the seed data, and the sorting decision about what `ro/` may
+   contain given it reaches the model provider.
+2. obsidian-mcp image + manifests + NetworkPolicy; deploy with PVC seeded by one-shot copy.
 3. Syncthing both sides, pair over tailnet, verify tier semantics (below).
-4. Switch hermes MCP from SSH wrapper to cluster URL; move briefings to `hermes cron`.
+4. Point hermes at the cluster URL; write its instruction block; move briefings to `hermes cron`.
+5. Off-box backup, then settle the exfiltration posture above.
 
 ## Verification
 
@@ -247,9 +276,11 @@ created out-of-band with kubectl; repo is public, nothing sensitive committed.
    pointing at `private/` — all rejected; symlink read attempt fails the realpath check.
 5. `obsidian_capture` twice with same title → second gets a distinct filename (O_EXCL respected,
    no overwrite).
-6. Unauthenticated request to obsidian-mcp → 401. `kubectl get svc -n agent-knowledge` shows no
-   tailscale annotation on obsidian-mcp, no ingress/httproute anywhere in the namespace, Syncthing
-   Service carries sync port only.
+6. Unauthenticated request to obsidian-mcp from the `hermes` namespace → 401; the same request
+   from any other namespace → connection times out (NetworkPolicy). Duplicate `Authorization`
+   headers → 401. `kubectl get svc -n agent-knowledge` shows no tailscale annotation on
+   obsidian-mcp, no ingress/httproute anywhere in the namespace, Syncthing Service carries sync
+   port only.
 7. Syncthing cluster pod: global discovery and relays disabled in its config; device list
    contains exactly the Mac.
 8. Pod restart: vault intact, git history intact (PVC), hermes `obsidian_status()` healthy.
@@ -261,8 +292,17 @@ created out-of-band with kubectl; repo is public, nothing sensitive committed.
 ## Out of scope
 
 - Embeddings / semantic search (ripgrep + links first; add later behind the same MCP surface).
-- NetworkPolicy (same accepted-risk posture as codex-lb; revisit cluster-wide).
 - Todoist/Calendar/Finance ingestion pipelines from the community post — separate spec per
   integration; each is a new untrusted-input channel and gets its own review.
 - Multi-device Syncthing (phone, second laptop).
-- Backups beyond the cluster git history + PVC (worth a follow-up: nightly bundle push).
+- Declarative Syncthing pairing: device IDs and shares are set up by hand through the GUI and
+  live in the config PVC, not in git. A PVC loss means re-pairing manually.
+
+Two items previously listed here are now in scope, because this holds personal notes rather than
+service credentials and the accepted-risk posture inherited from codex-lb does not transfer:
+
+- **NetworkPolicy** — ingress to obsidian-mcp restricted to the hermes namespace. Without it the
+  bearer token is the only barrier between any pod in the cluster and the whole vault.
+- **Off-box backup** — nightly `git bundle` off the node. The PVC is the only always-on copy, on
+  a single node, on `local-path` with `Delete` reclaim and no expansion; the git history the
+  sidecar builds sits on the same disk it is supposed to protect.
