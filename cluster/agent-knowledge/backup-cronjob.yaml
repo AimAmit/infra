@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: obsidian-backup
+  namespace: agent-knowledge
+  annotations:
+    # The point of this volume is to survive mistakes. A prune would defeat it.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+# HONEST LIMITATION: this is same-node, same-disk. It protects against the
+# failure modes that actually happen here - a bad sync, a mass delete
+# propagating from the Mac, an accidental `rm` - but not against losing the
+# node. A real off-box copy needs a destination outside this cluster; the
+# bundles are written in a format (single file per day) chosen so that
+# shipping them somewhere else later is a copy, not a redesign.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: obsidian-backup
+  namespace: agent-knowledge
+spec:
+  # 03:15 UTC. Off the hour to avoid every cron in the cluster firing at once.
+  schedule: "15 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: alpine/git:2.45.2
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: HOME
+                  value: /tmp
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  git config --global --add safe.directory /obsidian/rw
+                  DAY=$(date -u +%F)
+                  # A bundle is one file that `git clone` restores directly,
+                  # carrying every commit the history sidecar ever made - so a
+                  # restore recovers deleted notes, not just current ones.
+                  git -C /obsidian/rw bundle create "/backup/obsidian-rw-$DAY.bundle" --all
+                  # ro/ is not a git repo: it is authored on the Mac and
+                  # arrives read-only, so it gets a plain archive.
+                  tar czf "/backup/obsidian-ro-$DAY.tar.gz" -C /obsidian ro
+                  # Keep 14 days. `ls -t` newest first, everything past 14 goes.
+                  cd /backup
+                  ls -t obsidian-rw-*.bundle 2>/dev/null | tail -n +15 | xargs -r rm -f
+                  ls -t obsidian-ro-*.tar.gz 2>/dev/null | tail -n +15 | xargs -r rm -f
+                  echo "backup complete for $DAY:"
+                  ls -la /backup
+              volumeMounts:
+                - name: obsidian
+                  subPath: rw
+                  mountPath: /obsidian/rw
+                  # Nothing here writes to the vault. Read-only mount so a
+                  # mistake in this script cannot damage what it is protecting.
+                  readOnly: true
+                - name: obsidian
+                  subPath: ro
+                  mountPath: /obsidian/ro
+                  readOnly: true
+                - name: backup
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: obsidian
+              persistentVolumeClaim:
+                claimName: obsidian-data
+            - name: backup
+              persistentVolumeClaim:
+                claimName: obsidian-backup
+            - name: tmp
+              emptyDir: {}

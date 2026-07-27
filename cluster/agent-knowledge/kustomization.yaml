@@ -12,3 +12,4 @@ resources:
   - syncthing-pvc.yaml
   - syncthing.yaml
   - syncthing-service.yaml
+  - backup-cronjob.yaml

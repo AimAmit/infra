@@ -7,3 +7,11 @@ creds
 
 # subagent-driven-development scratch
 .superpowers/
+
+# macOS metadata
+.DS_Store
+
+# Agent worktrees and local tool state - these live inside the repo but are
+# never part of it, and a stray `git add -A` would commit a whole venv.
+.claude/worktrees/
+.agents/
