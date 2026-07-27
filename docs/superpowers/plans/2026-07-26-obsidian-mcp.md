@@ -422,7 +422,7 @@ def backlinks(obsidian_root: Path, ref: str) -> list[str]:
 - Consumes: `paths.resolve`, `writes.Writer`, `index.search/neighbors/backlinks`.
 - Produces: `tools.ObsidianTools(obsidian_root: Path, writer: Writer | None = None)` with methods `obsidian_search(query, limit=20)`, `obsidian_read(ref)`, `obsidian_backlinks(ref)`, `obsidian_neighbors(ref)`, `obsidian_capture(title, content, tags=[])`, `obsidian_log_daily(content)`, `obsidian_propose(target_ref, rationale, content)`, `obsidian_status()`. `server.build_app(obsidian_root, token) -> ASGI app`; `server.main()` reads env `OBSIDIAN_ROOT`, `OBSIDIAN_MCP_TOKEN`, `PORT` (default 8080) and runs uvicorn.
 
-- [ ] **Step 1: Write the failing tool tests**
+- [x] **Step 1: Write the failing tool tests**
 
 ```python
 # tests/test_tools.py
@@ -478,9 +478,9 @@ def test_status(tools):
     assert s["notes_ro"] == 1 and "notes_rw" in s
 ```
 
-- [ ] **Step 2: Run, verify fail** — ImportError.
+- [x] **Step 2: Run, verify fail** — ImportError.
 
-- [ ] **Step 3: Implement tools.py**
+- [x] **Step 3: Implement tools.py**
 
 ```python
 # src/obsidian_mcp/tools.py
@@ -563,9 +563,9 @@ class ObsidianTools:
         return {"notes_rw": count("rw"), "notes_ro": count("ro"), "last_git_commit": last_commit}
 ```
 
-- [ ] **Step 4: Run tool tests, verify pass** — 7 passed.
+- [x] **Step 4: Run tool tests, verify pass** — 7 passed.
 
-- [ ] **Step 5: Write the failing auth test**
+- [x] **Step 5: Write the failing auth test**
 
 ```python
 # tests/test_server_auth.py
@@ -608,9 +608,9 @@ def anyio_backend():
     return "asyncio"
 ```
 
-- [ ] **Step 6: Run, verify fail** — ImportError on `build_app`.
+- [x] **Step 6: Run, verify fail** — ImportError on `build_app`.
 
-- [ ] **Step 7: Implement server.py**
+- [x] **Step 7: Implement server.py**
 
 ```python
 # src/obsidian_mcp/server.py
@@ -668,9 +668,9 @@ if __name__ == "__main__":
 
 Note: if `mcp.http_app(path="/mcp")` errors on this fastmcp version, use `mcp.http_app()` and adjust the test URL to the app's default path (`/mcp` is the fastmcp ≥2.10 default).
 
-- [ ] **Step 8: Run full suite** — `.venv/bin/pytest -q` → all pass.
+- [x] **Step 8: Run full suite** — `.venv/bin/pytest -q` → all pass.
 
-- [ ] **Step 9: Commit** — `git commit -am "feat(obsidian-mcp): MCP tools and HTTP server with bearer auth"`
+- [x] **Step 9: Commit** — `git commit -am "feat(obsidian-mcp): MCP tools and HTTP server with bearer auth"`
 
 ### Task 5: CLI for the SSH phase
 
@@ -682,7 +682,7 @@ Note: if `mcp.http_app(path="/mcp")` errors on this fastmcp version, use `mcp.ht
 - Consumes: `ObsidianTools`.
 - Produces: console script `obsidian-cli` — `obsidian-cli --root PATH <tool> [args...]`, prints one JSON document to stdout, exit 0; on violation prints `{"error": msg}` and exit 1. Subcommands mirror the tools: `search QUERY`, `read REF`, `backlinks REF`, `neighbors REF`, `capture TITLE CONTENT [--tags a,b]`, `log-daily CONTENT`, `propose TARGET RATIONALE CONTENT`, `status`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_cli.py
@@ -708,9 +708,9 @@ def test_cli_capture(tmp_path, capsys):
     assert (tmp_path / ref).exists()
 ```
 
-- [ ] **Step 2: Run, verify fail.**
+- [x] **Step 2: Run, verify fail.**
 
-- [ ] **Step 3: Implement cli.py**
+- [x] **Step 3: Implement cli.py**
 
 ```python
 # src/obsidian_mcp/cli.py
@@ -763,9 +763,9 @@ def main():
     sys.exit(run())
 ```
 
-- [ ] **Step 4: Run full suite, verify pass.**
+- [x] **Step 4: Run full suite, verify pass.**
 
-- [ ] **Step 5: Commit** — `git commit -am "feat(obsidian-mcp): obsidian-cli for SSH-phase access"`
+- [x] **Step 5: Commit** — `git commit -am "feat(obsidian-mcp): obsidian-cli for SSH-phase access"`
 
 ---
 
