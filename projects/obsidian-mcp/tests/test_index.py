@@ -1,8 +1,26 @@
 import os
+import signal
+from contextlib import contextmanager
 
 import pytest
 from obsidian_mcp.index import search, neighbors, backlinks, _parse_frontmatter
-from obsidian_mcp.paths import PathViolation
+from obsidian_mcp.paths import PathViolation, resolve
+
+
+@contextmanager
+def deadline(seconds=3):
+    """Turn a hang into a test failure. A test that can hang the suite forever
+    is worse than no test, so every blocking-IO assertion runs under this."""
+    def _fire(signum, frame):
+        raise TimeoutError(f"blocked for more than {seconds}s")
+
+    previous = signal.signal(signal.SIGALRM, _fire)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @pytest.fixture
@@ -251,3 +269,70 @@ def test_frontmatter_scalars_and_inline_list_still_work(vault):
     assert fm["title"] == "Standup"
     assert fm["tags"] == ["a", "b"]
     assert fm["empty"] == ""
+
+
+# --- Fix round 2: non-regular files reaching resolve() (I5) -------------------
+# _iter_notes filters on S_ISREG, but resolve() only used S_ISREG to gate the
+# nlink check, so a non-regular file passed containment untouched. search and
+# backlinks were fine (they never see it); neighbors opened it.
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="POSIX FIFOs only")
+def test_fifo_named_like_a_note_is_rejected_by_resolve(vault):
+    os.mkfifo(vault / "rw/fifo.md")
+    with pytest.raises(PathViolation):
+        resolve(vault, "rw/fifo.md")
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="POSIX FIFOs only")
+def test_fifo_does_not_hang_neighbors(vault):
+    # Opening a FIFO with no writer blocks forever in open(): no exception, no
+    # timeout, so Task 4's "catch OSError" guidance cannot help. The deadline
+    # converts a regression from an infinite hang into a visible failure.
+    os.mkfifo(vault / "rw/fifo.md")
+    with deadline(3):
+        with pytest.raises(PathViolation):
+            neighbors(vault, "rw/fifo.md")
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="POSIX FIFOs only")
+def test_fifo_is_invisible_to_the_walkers(vault):
+    # Already true via _iter_notes' S_ISREG filter - pinned so the two layers
+    # cannot drift apart again.
+    os.mkfifo(vault / "rw/fifo.md")
+    with deadline(3):
+        assert "rw/fifo.md" not in {h["path"] for h in search(vault, "")}
+        assert "rw/fifo.md" not in backlinks(vault, "ro/People/Alice.md")
+
+
+def test_directory_named_like_a_note_raises_path_violation(vault):
+    # Was IsADirectoryError, whose message carries the absolute vault path.
+    # Now a path-free PathViolation, shrinking what Task 4 has to scrub.
+    (vault / "rw/notes.md").mkdir()
+    with pytest.raises(PathViolation):
+        resolve(vault, "rw/notes.md")
+    with pytest.raises(PathViolation):
+        neighbors(vault, "rw/notes.md")
+
+
+def test_resolve_still_allows_not_yet_existing_notes(vault):
+    # The create path: writes.py resolves before the file exists. The
+    # `st is not None` guard is what keeps this working - do not regress it.
+    assert resolve(vault, "rw/new.md") == vault / "rw/new.md"
+    deep = resolve(vault, "rw/Nested/Deeper/new.md")
+    assert deep == vault / "rw/Nested/Deeper/new.md"
+    assert not deep.parent.exists()  # parent absent too, still fine
+
+
+def test_symlinked_ro_tier_root_is_also_skipped(tmp_path):
+    # TIERS is iterated uniformly, but the round-1 tests only ever pinned rw/.
+    # The re-reviewer exercised ro -> private/ by hand; pin it so the symmetry
+    # is enforced rather than assumed.
+    root, _ = _canary_vault(tmp_path)
+    (root / "ro").rename(root / "ro-real")
+    (root / "rw").mkdir()
+    (root / "ro").symlink_to(root / "private", target_is_directory=True)
+    assert search(root, "canary-private") == []
+    assert backlinks(root, "rw/anything.md") == []
+    with pytest.raises(PathViolation):
+        neighbors(root, "ro/journal.md")

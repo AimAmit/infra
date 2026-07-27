@@ -53,4 +53,13 @@ def resolve(obsidian_root: Path, ref: str) -> Path:
         st = None
     if st is not None and S_ISREG(st.st_mode) and st.st_nlink > 1:
         raise PathViolation("hardlinked notes not allowed")
+    # Only regular files are ever opened. A FIFO named *.md blocks forever in
+    # open() with no writer - no exception and no timeout, so a caller told to
+    # "catch OSError" has nothing to catch and the server simply stops
+    # responding. This also turns a directory named like a note into a path-free
+    # PathViolation instead of an IsADirectoryError carrying the vault's
+    # absolute path. `st is not None` keeps the create path working: writes
+    # resolve a note before it exists.
+    if st is not None and not S_ISREG(st.st_mode):
+        raise PathViolation("not a regular file")
     return full
