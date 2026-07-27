@@ -14,6 +14,25 @@ spec:
         app: hermes
     spec:
       initContainers:
+      # hermes gives an MCP server 3 connection attempts at startup and then
+      # PARKS it for the life of the process - no periodic retry. Losing the
+      # startup race against obsidian-mcp therefore costs a full gateway
+      # restart, which is exactly what happened on first deploy.
+      #
+      # Bounded on purpose: it waits up to 60s and then starts anyway. hermes
+      # is a general agent and must not be held hostage by the vault being
+      # down - degraded beats absent.
+      - name: wait-for-obsidian-mcp
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          for i in $(seq 30); do
+            nc -z obsidian-mcp.agent-knowledge.svc.cluster.local 8080 && exit 0
+            sleep 2
+          done
+          echo "obsidian-mcp not reachable after 60s; starting anyway (vault tools will be parked)"
       - name: init-config
         image: alpine:latest
         command:

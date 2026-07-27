@@ -63,6 +63,22 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+          # TCP, not HTTP: every HTTP path requires the bearer token and
+          # returns 401, which kubelet counts as a failure. A listening socket
+          # is the strongest signal available without punching an
+          # unauthenticated hole in the auth wrapper.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
           resources:
             requests:
               cpu: 50m
