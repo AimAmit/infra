@@ -14,9 +14,26 @@ spec:
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: hermes
+  # The tailscale operator owns spec.externalName on mac-ssh: it sees the
+  # tailnet-fqdn annotation, provisions an egress proxy, and rewrites the
+  # field to that proxy's in-cluster name. Git can only carry the required
+  # dummy value, so without this Argo and the operator fight over the field
+  # forever - selfHeal writes "placeholder" back roughly every 20s, and any
+  # SSH connect that resolves mac-ssh inside that window gets NXDOMAIN.
+  ignoreDifferences:
+    - group: ''
+      kind: Service
+      name: mac-ssh
+      namespace: hermes
+      jsonPointers:
+        - /spec/externalName
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # Keep the ignored field ignored during an actual sync too, not just
+      # when computing drift. Without this, a sync triggered by any other
+      # resource still pushes "placeholder" over the operator's value.
+      - RespectIgnoreDifferences=true
