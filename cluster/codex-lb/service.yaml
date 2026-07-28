@@ -31,8 +31,9 @@ spec:
   selector:
     app: codex-lb
   ports:
-    # 2455 only. Port 1455 (OAuth callback) is intentionally not published;
+    # HTTP on port 80 only. Port 1455 (OAuth callback) is intentionally not
+    # published; the pod's HTTP listener remains on 2455 via targetPort.
     # account-add runs over `kubectl port-forward` to the Deployment.
     - name: http
-      port: 2455
+      port: 80
       targetPort: http
