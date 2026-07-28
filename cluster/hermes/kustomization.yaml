@@ -1,7 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: hermes
 resources:
-  - configmap.yaml
   - pvc.yaml
   - tailscale-service.yaml
   - deployment.yaml
+# Generated, not a plain ConfigMap, so the name carries a content hash. The
+# init container copies config.yaml onto the PVC once, at pod start, so an
+# edit to a fixed-name ConfigMap would leave the running pod on the old
+# config indefinitely - which is how hermes kept dialling codex-lb on the
+# retired port 2455 after the Service moved to 80. The hash suffix changes
+# the Deployment's volume reference, which forces a rollout.
+configMapGenerator:
+  - name: hermes-config
+    files:
+      - config.yaml
