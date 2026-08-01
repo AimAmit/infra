@@ -26,3 +26,15 @@ mcp_servers:
     url: http://obsidian-mcp.agent-knowledge.svc.cluster.local:8080/mcp
     headers:
       Authorization: "Bearer ${OBSIDIAN_MCP_TOKEN}"
+  local-control:
+    command: ssh
+    args:
+      - -i
+      - /opt/hermes/ssh/id_ed25519
+      - -o
+      - StrictHostKeyChecking=no
+      - -T
+      - tnluser@mac-ssh
+      - bunx
+      - -y
+      - terminal-mcp
