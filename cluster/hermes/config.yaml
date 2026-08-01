@@ -36,5 +36,4 @@ mcp_servers:
       - -T
       - tnluser@mac-ssh
       - bunx
-      - -y
       - terminal-mcp
