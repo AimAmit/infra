@@ -29,7 +29,7 @@ spec:
       containers:
         - name: codex-lb
           # Digest-pinned: the 1.23.0 tag is mutable on ghcr.
-          image: ghcr.io/soju06/codex-lb:1.23.0@sha256:3b369ac16e03d31b940be35dd8e61583f9cbd74bfca5e92e4bd03bfec62e5b13
+          image: ghcr.io/soju06/codex-lb:1.24
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
