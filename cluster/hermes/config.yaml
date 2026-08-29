@@ -5,7 +5,7 @@ model:
   # so it requires API Key Auth to be enabled there.
   base_url: http://codex-lb.codex-lb.svc.cluster.local/v1
   model: gpt-5.6-luna
-  context_length: 800000
+  context_length: 500000
 agent:
   reasoning_effort: max
 telegram:
