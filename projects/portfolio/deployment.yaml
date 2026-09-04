@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: portfolio
-          image: ghcr.io/aimamit/0xamit-portfolio:8425c0ff0348174d455c93170d842664a0cc4eed
+          image: ghcr.io/aimamit/0xamit-portfolio:02842fd42549161f558ba28e9ed709878597a079
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
