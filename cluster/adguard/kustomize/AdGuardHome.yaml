@@ -90,7 +90,8 @@ tls:
 querylog:
   dir_path: ""
   ignored: []
-  interval: 24h
+  # Rotate frequently; the deployment sidecar enforces a 5 GiB total cap.
+  interval: 1h
   size_memory: 64
   enabled: true
   file_enabled: true

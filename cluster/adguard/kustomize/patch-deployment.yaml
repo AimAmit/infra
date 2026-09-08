@@ -24,6 +24,61 @@ spec:
         - name: certs
           mountPath: /opt/adguardhome/ssl
           readOnly: true
+      - name: querylog-retention
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          log_dir=/opt/adguardhome/work/data
+          max_kb=5242880
+
+          usage_kb() {
+            set -- "$log_dir"/querylog.json*
+            if [ -e "$1" ]; then
+              du -k "$@" 2>/dev/null | awk '{ total += $1 } END { print total + 0 }'
+            else
+              echo 0
+            fi
+          }
+
+          prune_query_logs() {
+            while [ "$(usage_kb)" -gt "$max_kb" ]; do
+              # Keep the active file; remove the oldest rotated file first.
+              oldest="$(ls -1tr "$log_dir"/querylog.json.* 2>/dev/null | head -n 1 || true)"
+              if [ -n "$oldest" ]; then
+                rm -f "$oldest"
+              elif [ -f "$log_dir/querylog.json" ]; then
+                # No rotated file remains, so discard the oldest active entries.
+                : > "$log_dir/querylog.json"
+              else
+                break
+              fi
+            done
+          }
+
+          while :; do
+            if [ -d "$log_dir" ]; then
+              prune_query_logs
+            fi
+            sleep 60
+          done
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          allowPrivilegeEscalation: false
+        resources:
+          requests:
+            cpu: 5m
+            memory: 8Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+        volumeMounts:
+        - name: work
+          mountPath: /opt/adguardhome/work
       volumes:
       - name: conf-ro
         configMap:
