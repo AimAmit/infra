@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mfn-allocation
+  namespace: mfn-allocation
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: mfn-allocation
+      port:
+        name: http
+  tls:
+    - hosts:
+        - mfn-allocation

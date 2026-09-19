@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mfn-allocation
+  namespace: mfn-allocation
+  labels:
+    app.kubernetes.io/name: mfn-allocation
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mfn-allocation
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

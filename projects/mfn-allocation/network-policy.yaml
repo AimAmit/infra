@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mfn-allocation
+  namespace: mfn-allocation
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mfn-allocation
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+      ports:
+        - port: 8000
+          protocol: TCP
+  egress: []

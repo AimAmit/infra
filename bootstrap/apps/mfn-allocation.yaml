@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mfn-allocation
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AimAmit/infra.git
+    targetRevision: HEAD
+    path: projects/mfn-allocation
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mfn-allocation
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
