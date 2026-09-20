@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: server
-          image: ghcr.io/aimamit/multi-factor-nifty:sha-60b729cba415a2c342ac69bf603057e6b44fdab4
+          image: ghcr.io/aimamit/multi-factor-nifty:sha-6fb66eb46313c8f7e62a3e78a75012b5e08fa83a
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -34,6 +34,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: mfn-allocation
+            - secretRef:
+                name: kite-credentials
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
