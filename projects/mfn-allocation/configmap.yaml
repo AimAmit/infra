@@ -11,4 +11,4 @@ data:
   MFN_STRATEGY_NAME: mfn_mqv_retention_v1
   MFN_PUBLIC_URL: https://mfn-allocation.tail94c55.ts.net
   KITE_USER_ID: KMG458
-  KITE_LIVE_TRADING: "false"
+  KITE_LIVE_TRADING: "true"
