@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: server
-          image: ghcr.io/aimamit/multi-factor-nifty:sha-936cdd02e24b5a45b4875e1a32f1d37ed9bb16d4
+          image: ghcr.io/aimamit/multi-factor-nifty:sha-a53afece22cfe7c674f30972c74373132e2fa867
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
