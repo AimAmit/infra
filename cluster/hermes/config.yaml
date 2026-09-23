@@ -1,5 +1,15 @@
+providers:
+  codex-lb:
+    name: codex-lb
+    api: http://codex-lb.codex-lb.svc.cluster.local/v1
+    key_env: OPENAI_API_KEY
+    transport: chat_completions
+    # Hermes does not infer reasoning support for this private service host.
+    extra_body:
+      reasoning:
+        effort: max
 model:
-  provider: openai-api
+  provider: custom:codex-lb
   # codex-lb over in-cluster DNS, so this never leaves the cluster and
   # never traverses the tailnet. Non-local from codex-lb's perspective,
   # so it requires API Key Auth to be enabled there.
