@@ -6,6 +6,8 @@ CLIProxyAPI is now the active gateway, backed directly by user-added Codex OAuth
 
 For this user's workflow, prefer Codex CLI with Luna and Claude Code with Claude. Multi-provider UI switching is the reason to consider OpenCode/Pi, not a reason to replace a preferred native harness.
 
+Migration checks: two enabled Codex OAuth credentials; no Codex-LB API-key group in live/seed config; no prefixed model in `/v1/models`; SSE and nonstreaming Responses with schema-valid tools/history replay at `max`; Hermes runtime resolves CLIProxyAPI and generated successfully via its established Chat Completions transport. Client/admin keys remain distinct. Codex-LB deployment/service are removed by GitOps; its PVC is protected.
+
 The original research and initial deployment below describe the transition's starting point. Suggestions to retain Codex-LB or use prefixed models are historical and superseded by the direct OAuth migration.
 
 ## Original decision (superseded)

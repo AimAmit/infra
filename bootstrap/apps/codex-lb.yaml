@@ -1,3 +1,4 @@
+# Retired service: this application retains only its protected recovery PVC.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
