@@ -1,6 +1,14 @@
 # CLIProxyAPI evaluation — 2026-09-30
 
-## Decision
+## Current deployment — direct OAuth
+
+CLIProxyAPI is now the active gateway, backed directly by user-added Codex OAuth accounts. Use the bare model `gpt-6-luna` at `max`; there is no Codex-LB backend or prefix. Hermes uses the in-cluster CLIProxyAPI endpoint and its own Secret key. Codex-LB is retired after validating the new route; only its protected PVC remains managed for recovery.
+
+For this user's workflow, prefer Codex CLI with Luna and Claude Code with Claude. Multi-provider UI switching is the reason to consider OpenCode/Pi, not a reason to replace a preferred native harness.
+
+The original research and initial deployment below describe the transition's starting point. Suggestions to retain Codex-LB or use prefixed models are historical and superseded by the direct OAuth migration.
+
+## Original decision (superseded)
 
 Deploy CLIProxyAPI v8.0.4 alongside Codex-LB v1.24.0. CLIProxyAPI is a strong multi-provider/protocol gateway; Codex-LB remains valuable as the Codex account/quota manager. Initially route `codex-lb/gpt-6-luna` through Codex-LB, then onboard additional providers directly. This avoids duplicate refresh-token ownership and leaves existing Hermes traffic untouched.
 

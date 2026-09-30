@@ -1,39 +1,43 @@
 # CLIProxyAPI on Kubernetes/Tailscale
 
-Pinned release: v8.0.4. One replica, persistent config/provider tokens, private Tailscale service, independent inference and management keys. Codex-LB and Hermes retain their current configuration.
+CLIProxyAPI v8.0.4 is the active inference gateway. Codex accounts authenticate directly through OAuth; model names have no gateway prefix. Hermes uses this service at `max` reasoning. Codex-LB is retired; its volume is retained for recovery.
 
 - Inference: `http://cliproxyapi.tail94c55.ts.net/v1`
-- Management: `http://cliproxyapi.tail94c55.ts.net/management.html`
+- UI: `http://cliproxyapi.tail94c55.ts.net/management.html`
 - Cluster clients: `http://cliproxyapi.cliproxyapi.svc.cluster.local/v1`
-- Initial model: `codex-lb/gpt-6-luna`, with `reasoning.effort: max` on Responses.
-- Local credentials: `/Users/tnluser/.config/cliproxyapi/credentials.env` (0600; never commit).
+- Model: `gpt-6-luna`, with `reasoning.effort: max` on Responses.
+- Local client/admin credentials: `/Users/tnluser/.config/cliproxyapi/credentials.env` (0600).
 
-HTTP travels inside the encrypted tailnet. There is no public ingress, Funnel, NodePort, or OAuth callback publication. Management requires the separate admin token. NetworkPolicy permits ingress from Tailscale, Hermes, and this namespace; other cluster clients need an explicit policy entry. Egress remains available to upstream providers.
+The ClusterIP Service exposes port 80 over Tailscale and forwards to container port 8317. No public ingress, Funnel, NodePort or OAuth callback publication. The separate admin password protects management. NetworkPolicy admits Tailscale, Hermes and the gateway namespace; egress allows provider connections.
 
-## Configuration ownership and recovery
+## Persistence and recovery
 
-Create the `cliproxyapi` namespace and a Secret named `cliproxyapi-bootstrap` containing `config.yaml` and `management-password` before the first Argo sync. `config.example.yaml` is a template, deliberately excluded from Kustomize resources. Replace both placeholders, keeping upstream/client/admin keys distinct.
+Kubernetes Secret `cliproxyapi-bootstrap` in namespace `cliproxyapi` stores `config.yaml` and `management-password`. The init container seeds `/data/config.yaml` only when absent. Thereafter UI/API edits own the writable PVC copy; changing the Secret does not overwrite it. Password environment changes need a restart. Keep the seed synchronized when changing client keys or major settings.
 
-The init container copies the Secret config only when `/data/config.yaml` is absent. Thereafter the management UI/API edits the writable PVC copy; changing the bootstrap Secret does not overwrite live settings. The management password remains an environment variable, so Secret changes require a restart. Rotate inference/provider keys through the UI/API and update the seed for disaster recovery. Back up the PVC securely: it contains provider refresh tokens and config credentials. PVC pruning is disabled.
+The `cliproxyapi-data` PVC holds live configuration, OAuth credentials and cached management HTML. Back up it and the Secret securely. OAuth credentials added through the UI are on the PVC, not in the bootstrap Secret. PVC pruning is disabled. Inference/provider keys belong in live config; never git.
 
-The panel downloads on first access and is then cached on the PVC; automatic panel updates are disabled. Update it deliberately when upgrading the backend. Request body logging, native plugins, distributed Home mode, and realtime UDP relay are not enabled.
+The UI password can be recovered with:
 
-## Add providers
+```sh
+kubectl get secret cliproxyapi-bootstrap -n cliproxyapi -o jsonpath='{.data.management-password}' | base64 -d
+```
 
-Use the management UI to add supported provider OAuth accounts or API keys. Browser consent still requires the account owner. Start with one account per provider, inspect `/v1/models`, and test native protocol/tool calling before adding pools. Use device login or local port forwarding when a provider requires a loopback OAuth callback; callback ports are not exposed by the Service. Do not copy Codex-LB refresh tokens: it owns the existing accounts and serves as an API-key upstream here.
+Hermes reads its inference key from `hermes/hermes-secrets`, key `cliproxyapi-token`. Neither lost local credentials nor a pod restart requires re-onboarding, provided Kubernetes/PVC data survives.
 
-Give each provider an explicit model prefix (e.g. `claude`, `gemini`) and avoid disguising a GPT model with a Claude model name. Preserve native protocol paths where possible. Native Claude OAuth may enable cloaking/system-prompt rewriting for non-native clients; evaluate prompt fidelity before using that path. API keys/native Claude Code are preferable when those changes are unwanted.
+## Providers and protocols
 
-The Codex bridge is not a transparent pass-through: the adapter removes `previous_response_id`. Clients must replay conversation history, including tool results/reasoning items as supported; clients relying on server-side continuation IDs should use Codex-LB directly. Native Responses avoids Chat Completions conversion but does not guarantee identical upstream request semantics.
+Manage OAuth accounts/API keys in the UI. Start with providers you own and validate `/v1/models`, tools and reasoning before pooling accounts. Names are unprefixed; optional provider namespaces can be introduced only if you deliberately need collision handling. Do not disguise another provider's model with a misleading alias.
 
-## Harnesses
+Use device login/local port forwarding for loopback callbacks. Callback ports are not exposed. Native Claude OAuth may enable cloaking/system-prompt rewriting for non-native clients; consider native API keys/Claude Code when prompt fidelity matters.
 
-OpenCode is the broad multi-provider coding default; configure OpenAI models through its native OpenAI Responses provider, and Claude through its Anthropic provider. Hermes remains the always-on agent. Its existing Chat Completions connection remains unchanged, but a separately tested `codex_responses` provider is preferable for Codex reasoning continuation. No Hermes migration is included here.
+The Codex HTTP/SSE adapter removes `previous_response_id`; replay history including tool results. Responses preserves more native semantics than translating everything to Chat Completions, but is not a transparent pass-through.
 
-Codex CLI custom provider example (`~/.codex/config.toml`):
+## Harnesses and clients
+
+Codex CLI is the preferred coding harness for the current Luna workflow. Claude Code is the preferred Claude harness. Hermes remains the always-on Telegram/MCP agent and keeps its established Chat Completions transport during this endpoint migration. OpenCode and Pi remain alternatives for multi-provider switching/extensions.
 
 ```toml
-model = "codex-lb/gpt-6-luna"
+model = "gpt-6-luna"
 model_provider = "cliproxyapi"
 model_reasoning_effort = "max"
 
@@ -44,18 +48,12 @@ env_key = "CLIPROXYAPI_API_KEY"
 wire_api = "responses"
 ```
 
-Load the private credentials file into the shell before running the CLI. Codex currently supports Responses as its custom-provider wire protocol. These settings apply to Codex CLI/custom-provider environments, not automatically to managed ChatGPT Work.
-
-Pi's official integration:
-
-```sh
-pi install npm:@router-for-me/pi-cliproxyapi-provider
-```
-
-Then `/login CLIProxyAPI`; `/settings` → Transport → `websocket-cached`. The deployed bridge uses upstream HTTP/SSE initially; websocket-cached performance is not benchmarked here. See [evaluation](../../docs/cliproxyapi-evaluation.md) for the capability comparison.
+OpenAI SDK/curl clients use the same `/v1` base URL and client key. Codex custom-provider settings apply to CLI/custom-provider environments, not automatically managed ChatGPT Work.
 
 ## Validation and rollback
 
-Render with `kubectl kustomize cluster/cliproxyapi`. Run `source ~/.config/cliproxyapi/credentials.env` then `python3 cluster/cliproxyapi/smoke.py` for the focused live check (uses a small amount of model quota). Verify Argo health, `/healthz`, unauthorized inference rejection, management auth, `/v1/models`, and a real Responses request at `max`. Health probes prove the gateway process responds, not upstream quota or generation availability.
+Render with `kubectl kustomize cluster/cliproxyapi`. Source the private credentials file and run `python3 cluster/cliproxyapi/smoke.py`: it checks auth separation, bare Luna model/no retired prefix, SSE tools at max and a nonstreaming history-replay continuation. This consumes a small amount of quota.
 
-Revert the deployment commit to remove the gateway; the protected PVC and manually provisioned Secret remain for recovery. Existing Codex-LB and Hermes require no rollback because they were not changed.
+Health probes prove the process responds, not upstream generation availability. Backend is digest-pinned; panel periodic updates, request body logging, native plugins, Home and realtime UDP relay are disabled. Model catalogs are still refreshed upstream.
+
+A private pre-migration config backup exists at `~/.config/cliproxyapi/config-before-direct-oauth.yaml`. Recover an older deployment from git if needed; retained Codex-LB data is documented in `cluster/codex-lb/README.md`. See [evaluation](../../docs/cliproxyapi-evaluation.md) for capabilities and historical comparison.

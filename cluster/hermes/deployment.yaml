@@ -63,7 +63,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: codex-lb-token
+              key: cliproxyapi-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
@@ -89,7 +89,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: hermes-secrets
-              key: codex-lb-token
+              key: cliproxyapi-token
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:

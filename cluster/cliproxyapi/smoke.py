@@ -7,7 +7,7 @@ import urllib.request
 BASE = os.environ.get("CLIPROXYAPI_BASE_URL", "http://cliproxyapi.tail94c55.ts.net/v1").rstrip("/")
 CLIENT = os.environ["CLIPROXYAPI_API_KEY"]
 ADMIN = os.environ["CLIPROXYAPI_MANAGEMENT_KEY"]
-MODEL = "codex-lb/gpt-6-luna"
+MODEL = "gpt-6-luna"
 
 
 def request(url, token=None, payload=None):
@@ -27,7 +27,9 @@ assert request(BASE + "/models")[0] == 401
 assert request(BASE + "/models", "invalid-key")[0] == 401
 status, response = request(BASE + "/models", CLIENT)
 assert status == 200, status
-assert MODEL in [m["id"] for m in json.load(response)["data"]]
+models = [m["id"] for m in json.load(response)["data"]]
+assert MODEL in models
+assert not any(m.startswith("codex-lb/") for m in models)
 management = BASE.removesuffix("/v1") + "/v0/management/auth-files"
 assert request(management, CLIENT)[0] in (401, 403)
 assert request(management, ADMIN)[0] == 200

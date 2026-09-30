@@ -1,7 +1,7 @@
 providers:
-  codex-lb:
-    name: codex-lb
-    api: http://codex-lb.codex-lb.svc.cluster.local/v1
+  cliproxyapi:
+    name: cliproxyapi
+    api: http://cliproxyapi.cliproxyapi.svc.cluster.local/v1
     key_env: OPENAI_API_KEY
     transport: chat_completions
     # Hermes does not infer reasoning support for this private service host.
@@ -9,11 +9,9 @@ providers:
       reasoning:
         effort: max
 model:
-  provider: custom:codex-lb
-  # codex-lb over in-cluster DNS, so this never leaves the cluster and
-  # never traverses the tailnet. Non-local from codex-lb's perspective,
-  # so it requires API Key Auth to be enabled there.
-  base_url: http://codex-lb.codex-lb.svc.cluster.local/v1
+  provider: custom:cliproxyapi
+  # Direct OAuth gateway over cluster DNS; authenticated by OPENAI_API_KEY.
+  base_url: http://cliproxyapi.cliproxyapi.svc.cluster.local/v1
   model: gpt-6-luna
   context_length: 500000
 auxiliary:
@@ -22,7 +20,7 @@ auxiliary:
     # api.openai.com key, so the endpoint must be explicit for vision calls.
     provider: main
     model: ""
-    base_url: http://codex-lb.codex-lb.svc.cluster.local/v1
+    base_url: http://cliproxyapi.cliproxyapi.svc.cluster.local/v1
 agent:
   reasoning_effort: max
 telegram:
