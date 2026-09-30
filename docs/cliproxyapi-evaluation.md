@@ -32,11 +32,13 @@ This assessment inspected the release source/config, project integration docs, d
 | Best fit | Codex accounts, quota management, reporting | Many provider accounts and client protocols |
 | Provider breadth | Codex-centered, plus custom OpenAI-compatible model sources | Multiple native OAuth adapters plus API-key integrations |
 | Routing | Capacity/relative availability/usage weighting, round-robin, fill-first, sequential/reset drain, single-account | Round-robin, weighted-round-robin, fill-first, priority, cooldown/failover |
-| Continuation | Hard ownership for previous response/uploaded file IDs, plus sticky policies | Universal soft affinity and failover; state portability remains provider-dependent |
+| Continuation | Hard ownership for previous response/uploaded file IDs, plus sticky policies | Universal soft affinity and failover; Codex HTTP/SSE strips previous_response_id, so replay full history |
 | Analytics | Built-in quota/usage/cost/reasoning dashboard and API-key policies | External durable usage system needed |
 | API coverage | Responses/WS/compact, images/files/audio transcription/realtime in its documented surface | Broader protocol translation; different media endpoints, not a superset of every OpenAI route |
 
 Therefore “better” depends on the job. CLIProxyAPI should be the multi-provider front door; retain Codex-LB for its quota/continuation/analytics strengths. Chaining adds another failure point and some overhead, so route additional providers directly through CLIProxyAPI rather than inserting unnecessary proxies. Codex-LB custom-source reporting also has limitations: its documented reasoning-report path does not cover arbitrary OpenAI-compatible sources.
+
+The initial native Codex bridge preserves the Responses protocol and tested `max` reasoning, but is not transparent: its HTTP/SSE executor deletes `previous_response_id` and normalizes other request fields. Use client-managed history replay and test compaction/reasoning replay on your workload. Keep direct Codex-LB access for applications requiring server-side continuation IDs or other routes the gateway does not implement.
 
 ## Best harness pairing
 
@@ -55,6 +57,21 @@ Therefore “better” depends on the job. CLIProxyAPI should be the multi-provi
 - Keep Codex-LB's dashboard for existing Codex usage. Add one persistent CLIProxyAPI usage collector only when you need cross-provider cost/history; verify which forwarded requests its accounting actually covers.
 - Compare OpenCode and Pi on the same real repository task: correctness, tool reliability, continuation/compaction, time to first token, total latency and quota consumption. Select based on observed workflow fit.
 - Back up provider tokens/config, keep management private, and deliberately upgrade pinned backend/panel versions. Do not enable plugins, Home, extra databases or realtime UDP until a concrete workload needs them.
+
+## Deployment evidence
+
+Deployed on 2026-09-30 via ArgoCD: application Synced/Healthy, one ready gateway pod, bound 1Gi PVC, and online Tailscale peer `cliproxyapi` (`100.114.23.38`). Backend image reports v8.0.4/d33f63f. No existing Codex-LB or Hermes resource was changed.
+
+Verified from the local machine across Tailscale:
+
+- `/healthz`, management HTML, and authenticated v8 management configuration return success.
+- Missing/invalid inference keys return 401; the inference key is rejected by management while the separate admin key succeeds.
+- `/v1/models` includes `codex-lb/gpt-6-luna`.
+- A real SSE Responses request produced 11 events, completed with `reasoning.effort=max`, and returned a schema-valid forced function call.
+- A second nonstreaming request replayed history and the function result, then completed with the requested `DONE` answer and `max` reasoning.
+- Writable config has mode 0600 and is owned by the nonroot runtime UID. Management panel is cached on persistent storage.
+
+The runnable check is `cluster/cliproxyapi/smoke.py`. Other providers, WebSocket transport, image/video/live APIs, cross-account failover, and harness workload comparisons were inspected/documented but not live-tested without credentials. Image pinning does not pin the upstream periodically refreshed model catalogs; review catalog changes if reproducibility matters.
 
 ## Sources
 

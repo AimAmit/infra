@@ -24,9 +24,11 @@ Use the management UI to add supported provider OAuth accounts or API keys. Brow
 
 Give each provider an explicit model prefix (e.g. `claude`, `gemini`) and avoid disguising a GPT model with a Claude model name. Preserve native protocol paths where possible. Native Claude OAuth may enable cloaking/system-prompt rewriting for non-native clients; evaluate prompt fidelity before using that path. API keys/native Claude Code are preferable when those changes are unwanted.
 
+The Codex bridge is not a transparent pass-through: the adapter removes `previous_response_id`. Clients must replay conversation history, including tool results/reasoning items as supported; clients relying on server-side continuation IDs should use Codex-LB directly. Native Responses avoids Chat Completions conversion but does not guarantee identical upstream request semantics.
+
 ## Harnesses
 
-OpenCode is the broad multi-provider coding default; configure OpenAI models through its native OpenAI Responses provider, and Claude through its Anthropic provider. Hermes remains the always-on agent. Its current Chat Completions connection works, but a separately tested `codex_responses` provider is preferable for Codex reasoning continuation. No Hermes migration is included here.
+OpenCode is the broad multi-provider coding default; configure OpenAI models through its native OpenAI Responses provider, and Claude through its Anthropic provider. Hermes remains the always-on agent. Its existing Chat Completions connection remains unchanged, but a separately tested `codex_responses` provider is preferable for Codex reasoning continuation. No Hermes migration is included here.
 
 Codex CLI custom provider example (`~/.codex/config.toml`):
 
@@ -54,6 +56,6 @@ Then `/login CLIProxyAPI`; `/settings` → Transport → `websocket-cached`. The
 
 ## Validation and rollback
 
-Render with `kubectl kustomize cluster/cliproxyapi`. Verify Argo health, `/healthz`, unauthorized inference rejection, management auth, `/v1/models`, and a real Responses request at `max`. Health probes prove the gateway process responds, not upstream quota or generation availability.
+Render with `kubectl kustomize cluster/cliproxyapi`. Run `source ~/.config/cliproxyapi/credentials.env` then `python3 cluster/cliproxyapi/smoke.py` for the focused live check (uses a small amount of model quota). Verify Argo health, `/healthz`, unauthorized inference rejection, management auth, `/v1/models`, and a real Responses request at `max`. Health probes prove the gateway process responds, not upstream quota or generation availability.
 
 Revert the deployment commit to remove the gateway; the protected PVC and manually provisioned Secret remain for recovery. Existing Codex-LB and Hermes require no rollback because they were not changed.
