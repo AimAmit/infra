@@ -1,0 +1,44 @@
+config-version: 8
+server:
+  host: ""
+  port: 8317
+management:
+  allow-remote: true
+  disable-auto-update-panel: true
+access:
+  api-keys: ["REPLACE_CLIENT_KEY"]
+oauth:
+  auth-dir: /data/auth
+  providers:
+    aistudio:
+      ws-auth: true
+routing:
+  strategy: round-robin
+  session-affinity: true
+  session-affinity-subagents: true
+  force-model-prefix: true
+  retry:
+    request-retry: 1
+requests:
+  streaming:
+    keepalive-seconds: 15
+api-keys:
+  codex:
+    - name: codex-lb
+      prefix: codex-lb
+      base-url: http://codex-lb.codex-lb.svc.cluster.local/v1
+      models:
+        - name: gpt-6-luna
+          alias: gpt-6-luna
+          thinking:
+            levels: [low, medium, high, xhigh, max]
+      keys:
+        - api-key: "REPLACE_CODEX_LB_KEY"
+          disable-codex-cloaking: true
+          websockets: false
+observability:
+  logs:
+    logging-to-file: false
+    request-log: false
+plugins:
+  enabled: false
