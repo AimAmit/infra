@@ -20,7 +20,7 @@ master:
     accessModes:
       - ReadWriteOnce
   service:
-    type: NodePort # Internal service for Redis master
+    type: ClusterIP
   extraFlags: # Add extra command line flags for Redis master
     - "--maxmemory-policy noeviction"
   disableCommands:
