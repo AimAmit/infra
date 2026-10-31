@@ -13,7 +13,7 @@ model:
   # Direct OAuth gateway over cluster DNS; authenticated by OPENAI_API_KEY.
   base_url: http://cliproxyapi.cliproxyapi.svc.cluster.local/v1
   model: gemini-3.8-flash
-  context_length: 1000000
+  context_length: 500000
 auxiliary:
   vision:
     # Reuse Gemini Flash through the in-cluster proxy. The proxy key is not a direct
