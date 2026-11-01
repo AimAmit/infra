@@ -21,3 +21,5 @@ spec:
       ports:
         - protocol: TCP
           port: 8317
+        - protocol: TCP
+          port: 18317

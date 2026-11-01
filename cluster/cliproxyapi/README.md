@@ -3,7 +3,8 @@
 CLIProxyAPI v8.0.4 is the active inference gateway. Codex accounts authenticate directly through OAuth; model names have no gateway prefix. Hermes uses this service at `max` reasoning. Codex-LB is retired; its volume is retained for recovery.
 
 - Inference: `http://cliproxyapi.tail94c55.ts.net/v1`
-- UI: `http://cliproxyapi.tail94c55.ts.net/management.html` (CPA Manager Plus)
+- Management UI: `http://cliproxyapi.tail94c55.ts.net/management.html` (CPA Manager Plus frontend)
+- Observability & Cost Dashboard: `http://cliproxyapi.tail94c55.ts.net:18317` (CPA Manager Plus Server with persistent SQLite request history and cost analytics)
 - Cluster clients: `http://cliproxyapi.cliproxyapi.svc.cluster.local/v1`
 - Model: `gpt-6-luna`, with `reasoning.effort: max` on Responses.
 - Local client/admin credentials: `/Users/tnluser/.config/cliproxyapi/credentials.env` (0600).
