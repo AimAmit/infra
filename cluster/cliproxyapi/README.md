@@ -4,6 +4,7 @@ CLIProxyAPI v8.0.4 is the active inference gateway. Codex accounts authenticate 
 
 - Inference: `http://cliproxyapi.tail94c55.ts.net/v1`
 - UI: `http://cliproxyapi.tail94c55.ts.net/management.html`
+- Costs Dashboard: `http://cliproxyapi.tail94c55.ts.net/v0/resource/plugins/cliproxy-costs/dashboard`
 - Cluster clients: `http://cliproxyapi.cliproxyapi.svc.cluster.local/v1`
 - Model: `gpt-6-luna`, with `reasoning.effort: max` on Responses.
 - Local client/admin credentials: `/Users/tnluser/.config/cliproxyapi/credentials.env` (0600).
