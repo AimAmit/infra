@@ -8,6 +8,8 @@ data:
         listen 8080;
         server_name _;
         client_max_body_size 50M;
+        port_in_redirect off;
+        absolute_redirect off;
 
         # Inference, models & gateway core endpoints -> CLIProxyAPI (8317)
         location ~ ^/(v1|models|healthz|oauth-callback|.*callback|ws) {
