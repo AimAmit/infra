@@ -1,6 +1,6 @@
 # CLIProxyAPI on Kubernetes/Tailscale
 
-CLIProxyAPI v8.0.4 is the active inference gateway. Codex accounts authenticate directly through OAuth; model names have no gateway prefix. Hermes uses this service at `max` reasoning. Codex-LB is retired; its volume is retained for recovery.
+CLIProxyAPI v8.0.50 is the active inference gateway. Codex accounts authenticate directly through OAuth; model names have no gateway prefix. Hermes uses this service at `max` reasoning. Codex-LB is retired; its volume is retained for recovery.
 
 - Inference: `http://cliproxyapi.tail94c55.ts.net/v1`
 - Management & Metrics Dashboard: `http://cliproxyapi.tail94c55.ts.net` (Single unified dashboard on port 80 hosting CPA Manager Plus with persistent SQLite request history, Usage Analytics, and Cost breakdown)
