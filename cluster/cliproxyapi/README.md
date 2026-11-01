@@ -3,13 +3,12 @@
 CLIProxyAPI v8.0.4 is the active inference gateway. Codex accounts authenticate directly through OAuth; model names have no gateway prefix. Hermes uses this service at `max` reasoning. Codex-LB is retired; its volume is retained for recovery.
 
 - Inference: `http://cliproxyapi.tail94c55.ts.net/v1`
-- Management UI: `http://cliproxyapi.tail94c55.ts.net/management.html` (CPA Manager Plus frontend)
-- Observability & Cost Dashboard: `http://cliproxyapi.tail94c55.ts.net:18317` (CPA Manager Plus Server with persistent SQLite request history and cost analytics)
+- Management & Metrics Dashboard: `http://cliproxyapi.tail94c55.ts.net` (Single unified dashboard on port 80 hosting CPA Manager Plus with persistent SQLite request history, Usage Analytics, and Cost breakdown)
 - Cluster clients: `http://cliproxyapi.cliproxyapi.svc.cluster.local/v1`
-- Model: `gpt-6-luna`, with `reasoning.effort: max` on Responses.
+- Model: `gemini-3.8-flash` / `gpt-6-luna`, with `reasoning.effort: max` on Responses.
 - Local client/admin credentials: `/Users/tnluser/.config/cliproxyapi/credentials.env` (0600).
 
-The ClusterIP Service exposes port 80 over Tailscale and forwards to container port 8317. No public ingress, Funnel, NodePort or OAuth callback publication. The separate admin password protects management. NetworkPolicy admits Tailscale, Hermes and the gateway namespace; egress allows provider connections.
+The ClusterIP Service exposes port 80 over Tailscale. A hardened in-pod Nginx gateway terminates port 80 and transparently routes `/v1/*` to CLIProxyAPI and `/` / `/management.html` / `/usage-service/*` to CPA Manager Plus. No public ingress, Funnel, or secondary ports. The admin password protects management. NetworkPolicy admits Tailscale, Hermes and the gateway namespace; egress allows provider connections.
 
 ## Persistence and recovery
 

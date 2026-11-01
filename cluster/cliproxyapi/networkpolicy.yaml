@@ -20,6 +20,4 @@ spec:
               kubernetes.io/metadata.name: cliproxyapi
       ports:
         - protocol: TCP
-          port: 8317
-        - protocol: TCP
-          port: 18317
+          port: 8080
